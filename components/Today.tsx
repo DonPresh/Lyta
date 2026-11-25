@@ -42,14 +42,18 @@ function HabitRow({ title, detail, done, onToggle, onStart, startLabel = 'Start'
   );
 }
 
-export function Today({ profile, habits, days, today, streak, onToggle, setWater, onSugar, setSteps, saveHabit, deleteHabit, onRoutine }: {
-  onRoutine: (h: HabitDef) => void;
+export function Today({ profile, habits, days, today, streak, onToggle, setWater, onSugar, setSteps, saveHabit, deleteHabit, onRoutine, initialSel }: {
+  onRoutine: (h: HabitDef) => void; initialSel?: string;
   profile: Profile; habits: HabitDef[]; days: Record<string, Day>; today: string; streak: number;
   onToggle: (id: string, date: string) => void; setWater: (n: number, date: string) => void; onSugar: (date: string) => void; setSteps: (n: number, date: string) => void;
   saveHabit: (h: Omit<HabitDef, 'id'> & { id?: string }) => void; deleteHabit: (id: string) => void;
 }) {
-  const [sel, setSel] = useState(today);
-  const [weekOff, setWeekOff] = useState(0);
+  const [sel, setSel] = useState(initialSel ?? today);
+  const [weekOff, setWeekOff] = useState(() => {
+    if (!initialSel) return 0;
+    const monday = (iso: string) => { const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); };
+    return Math.round((monday(initialSel) - monday(today)) / (7 * 864e5));
+  });
   const [fillIn, setFillIn] = useState(false);
   const pick = (iso: string) => { setSel(iso); setFillIn(false); };
   const isToday = sel === today;
@@ -86,7 +90,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
         <div className="row" style={{ gap: 8 }}>
           {isToday ? <span className="row" style={{ gap: 6, height: 36, padding: '0 14px 0 12px', borderRadius: 999, background: 'var(--green)', color: '#fff', fontWeight: 600 }}>
             <Icon name="streak" size={16} />{streak > 0 ? streak : 'Day 1'}
-          </span> : <button onClick={() => { pick(today); setWeekOff(0); }} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, background: 'var(--cobalt)', color: '#fff', fontWeight: 600 }}>Back to today</button>}
+          </span> : <button onClick={() => { pick(today); setWeekOff(0); }} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, background: 'var(--cobalt)', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', flex: 'none' }}>Back to today</button>}
         </div>
       </div>
 

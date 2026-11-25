@@ -36,7 +36,29 @@ export const showedUp = (d: Day | undefined) => Object.values(d?.done ?? {}).som
 export const currentKg = (s: State) => s.weights.length ? [...s.weights].sort((a, b) => a.date < b.date ? -1 : 1).at(-1)!.kg : s.profile?.startKg ?? 0;
 
 // Streak: consecutive days showed up, with 2 freezes a month used automatically.
-export const streak = (s: State, today = isoDate()) => {
+export type DayMark = 'full' | 'some' | 'freeze' | 'miss';
+/** Walks forward from the start date. A day counts if anything was ticked or sugar was logged.
+ *  Up to 2 missed days a month are frozen automatically, so one bad day never wipes the run. */
+export const streakInfo = (s: State, today = isoDate()) => {
+  const start = s.profile?.startedOn ?? today;
+  const marks: Record<string, DayMark> = {}, used: Record<string, number> = {};
+  let run = 0, best = 0, full = 0;
+  for (let d = start, i = 0; d <= today && i < 3650; d = addDays(d, 1), i++) {
+    const day = s.days[d];
+    if (showedUp(day)) { const f = s.habits.length > 0 && doneCount(day, s.habits) >= s.habits.length; marks[d] = f ? 'full' : 'some'; if (f) full++; run++; }
+    else if (d !== today) {
+      const m = d.slice(0, 7);
+      if (run > 0 && (used[m] ?? 0) < 2) { used[m] = (used[m] ?? 0) + 1; marks[d] = 'freeze'; }
+      else { marks[d] = 'miss'; run = 0; }
+    }
+    best = Math.max(best, run);
+  }
+  return { current: run, best, full, marks, freezesLeft: 2 - (used[today.slice(0, 7)] ?? 0) };
+};
+
+export const streak = (s: State, today = isoDate()) => streakInfo(s, today).current;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const legacyStreak = (s: State, today = isoDate()) => {
   let n = 0, cursor = showedUp(s.days[today]) ? today : addDays(today, -1);
   const used: Record<string, number> = {};
   for (let i = 0; i < 3650; i++) {

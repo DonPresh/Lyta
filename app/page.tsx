@@ -9,6 +9,7 @@ import { WeightScreen } from '@/components/Weight';
 import { RoutinePlayer } from '@/components/Routine';
 import { ROUTINES, routineOf } from '@/lib/routines';
 import { WalkTimer } from '@/components/Walk';
+import { StreakScreen } from '@/components/Streak';
 import { Icon, type IconName } from '@/components/icons';
 import { addDays, isDone, streak, useLyta, type HabitDef } from '@/lib/store';
 
@@ -31,6 +32,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('Today');
   const [sugarDate, setSugarDate] = useState<string | null>(null);
+  const [pickDate, setPickDate] = useState<string | undefined>();
   const [routineFor, setRoutineFor] = useState<HabitDef | null>(null);
 
   const s = streak(state, today);
@@ -41,13 +43,13 @@ export default function Home() {
       {loading && <Loader onDone={() => setLoading(false)} />}
       {ready && !state.profile && <Onboarding onDone={setProfile} />}
       {ready && state.profile && <>
-        {tab === 'Today' && <Today profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} setWater={L.setWater} onSugar={setSugarDate} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} onRoutine={setRoutineFor} />}
-        {tab === 'Streak' && <Soon title="Streak" big={String(s)} unit="days showed up" line="Tick one habit and the day counts. You get 2 freezes a month, used automatically." />}
+        {tab === 'Today' && <Today key={pickDate ?? 'today'} initialSel={pickDate} profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} setWater={L.setWater} onSugar={setSugarDate} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} onRoutine={setRoutineFor} />}
+        {tab === 'Streak' && <StreakScreen state={state} today={today} onPickDay={d => { setPickDate(d === today ? undefined : d); setTab('Today'); }} />}
         {tab === 'Rewards' && <Soon title="Rewards" big={String(state.points)} unit="points" line="1 per habit, 2 bonus for a full day, 1 for logging sugar honestly." />}
         {tab === 'Weight' && <WeightScreen state={state} today={today} saveWeight={L.saveWeight} deleteWeight={L.deleteWeight} updateProfile={L.updateProfile} />}
         <nav className="tabbar" aria-label="Main">
           {TABS.map(([t, ic]) => (
-            <button key={t} className="tab" aria-current={tab === t ? 'page' : undefined} aria-label={t} onClick={() => setTab(t)}>
+            <button key={t} className="tab" aria-current={tab === t ? 'page' : undefined} aria-label={t} onClick={() => { setPickDate(undefined); setTab(t); }}>
               <Icon name={ic} size={22} />{tab === t && <span>{t}</span>}
             </button>
           ))}
