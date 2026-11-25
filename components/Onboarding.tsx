@@ -4,14 +4,26 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Ruler } from './Ruler';
 import { Icon, LytaMark } from './icons';
 import { BigNumber } from './BigNumber';
-import { isoDate, type Profile } from '@/lib/store';
+import { isoDate, type HabitDef, type Profile } from '@/lib/store';
+import { field } from './Sheet';
 
 const fmtTime = (m: number) => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 
-function Progress({ step }: { step: number }) {
-  const pct = step * 25;
+type Option = HabitDef & { on: boolean; editing?: boolean };
+const OPTIONS: Option[] = [
+  { id: 'food', title: 'Real food, not sugar', detail: 'Eat something real before noon', on: false },
+  { id: 'walk', title: 'Walk every day', detail: '20 minutes, any pace', on: false },
+  { id: 'bed', title: 'Earlier bedtime', detail: '30 minutes earlier each week', kind: 'bed', on: false },
+  { id: 'move', title: 'Get up every hour', detail: 'Stand and stretch for 2 minutes', on: false },
+  { id: 'knee', title: 'Knee-friendly routine', detail: '10 minutes, 2 rounds', on: false },
+  { id: 'drinks', title: 'No sugary drinks', detail: 'Water, tea or black coffee instead', on: false },
+  { id: 'protein', title: 'Protein at breakfast', detail: 'Eggs, beans, yoghurt or similar', on: false },
+];
+
+function Progress({ step, total }: { step: number; total: number }) {
+  const pct = Math.round(step / total * 100);
   return (
-    <div style={{ position: 'relative', height: 40, marginTop: 14 }} aria-label={`Step ${step} of 4`}>
+    <div style={{ position: 'relative', height: 40, marginTop: 14 }} aria-label={`Step ${step} of ${total}`}>
       <div className="row" style={{ position: 'absolute', inset: '14px 0 0', gap: 8 }}>
         <b className="cobalt" style={{ fontWeight: 900 }}>W</b>
         <div style={{ flex: 1, height: 3, background: 'var(--line)', borderRadius: 2, position: 'relative' }}>
@@ -24,17 +36,29 @@ function Progress({ step }: { step: number }) {
   );
 }
 
-export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => void }) {
+export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number, habits: HabitDef[]) => void }) {
   const [step, setStep] = useState(0);
+  const [opts, setOpts] = useState<Option[]>(OPTIONS);
   const [kg, setKg] = useState(100);
-  const [loss, setLoss] = useState(28);
+  const [goal, setGoal] = useState(80);
   const [bed, setBed] = useState(26 * 60); // 02:00, minutes from midnight of the previous day
   const [unit, setUnit] = useState<'kg' | 'lbs'>('kg');
 
   const finish = async (askNotify: boolean) => {
     if (askNotify && 'Notification' in window) { try { await Notification.requestPermission(); } catch { /* not supported */ } }
-    onDone({ startKg: kg, goalKg: +(kg - loss).toFixed(1), bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate(), stepGoal: 6000, pace: 0.75 }, kg);
+    const habits = opts.filter(o => o.on && o.title.trim()).map(({ id, title, detail, kind }) => ({ id, title: title.trim(), detail: detail.trim(), ...(kind ? { kind } : {}) }));
+    onDone({ startKg: kg, goalKg: Math.min(goal, kg - 0.1), bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate(), stepGoal: 6000, pace: 0.75 }, kg, habits);
   };
+
+  const wantsBed = opts.some(o => o.on && o.kind === 'bed');
+  const flow = ['welcome', 'weight', 'goal', 'habits', ...(wantsBed ? ['bed'] : []), 'remind'] as const;
+  const at = flow[Math.min(step, flow.length - 1)];
+  const next = () => setStep(s => s + 1);
+  const picked = opts.filter(o => o.on).length;
+  const patch = (id: string, p: Partial<Option>) => setOpts(os => os.map(o => o.id === id ? { ...o, ...p } : o));
+  const toU = (v: number) => unit === 'kg' ? v : Math.round(v * 2.2046);
+  const fromU = (v: number) => unit === 'kg' ? v : Math.round(v / 2.2046 * 10) / 10;
+  const toLose = Math.max(0, +(kg - goal).toFixed(1));
 
   const shown = unit === 'kg' ? kg : Math.round(kg * 2.2046);
   const Value = ({ big, u }: { big: string; u?: string }) => (
@@ -46,22 +70,22 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => voi
   return (
     <AnimatePresence mode="wait">
       <motion.div key={step} className="screen" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
-        {step === 0 && <>
+        {at === 'welcome' && <>
           <div className="row" style={{ gap: 8, marginTop: 8 }}><LytaMark size={28} /><span className="h3 cobalt" style={{ fontWeight: 900, fontSize: 24 }}>lyta</span></div>
           <div className="grow" />
-          <span className="num num-xl cobalt" style={{ marginLeft: -4 }}>−28</span>
-          <p className="h2 cobalt" style={{ margin: '12px 0 28px' }}>kg, one small day at a time</p>
+          <span className="num num-xl cobalt" style={{ marginLeft: -4 }}>1 day</span>
+          <p className="h2 cobalt" style={{ margin: '12px 0 28px' }}>at a time</p>
           <h1 className="h1">A kinder way to get lighter</h1>
-          <p className="body-l muted" style={{ margin: '10px 0 32px' }}>Three small habits a day: real food, a 10 minute knee routine and an earlier bedtime. No calorie counting. No guilt.</p>
-          <button className="btn btn-primary" onClick={() => setStep(1)}>Let&apos;s start</button>
+          <p className="body-l muted" style={{ margin: '10px 0 32px' }}>Pick a few small habits that fit your life. Tick them off, log sugar without guilt, and watch the weight come off slowly. No calorie counting.</p>
+          <button className="btn btn-primary" onClick={next}>Let&apos;s start</button>
         </>}
 
         {step > 0 && <div className="row between" style={{ marginTop: 8 }}>
           <button className="icon-btn" aria-label="Back" onClick={() => setStep(s => s - 1)}><Icon name="back" size={20} /></button>
         </div>}
-        {step > 0 && <Progress step={step} />}
+        {step > 0 && <Progress step={step} total={flow.length - 1} />}
 
-        {step === 1 && <>
+        {at === 'weight' && <>
           <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What do you weigh today?</h1>
           <p className="muted" style={{ margin: '10px 0 0' }}>Weigh in before breakfast. Only you will ever see this number.</p>
           <div style={{ margin: '36px 0 10px' }}><BigNumber size="xl" value={shown} onChange={v => setKg(unit === 'kg' ? v : Math.round(v / 2.2046 * 10) / 10)} min={unit === 'kg' ? 40 : 88} max={unit === 'kg' ? 250 : 550} decimals={unit === 'kg' ? 1 : 0} unit={unit} label="Your weight today" /></div>
@@ -73,22 +97,54 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => voi
             </div>
           </div>
           <div className="grow" />
-          <button className="btn btn-primary" onClick={() => setStep(2)}>Next</button>
+          <button className="btn btn-primary" onClick={() => { if (goal >= kg) setGoal(Math.max(40, Math.round(kg * 0.85))); next(); }}>Next</button>
         </>}
 
-        {step === 2 && <>
-          <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What&apos;s your weight loss goal?</h1>
-          <p className="muted" style={{ margin: '10px 0 0' }}>Saying the number out loud is an important (and hard) first step.</p>
-          <div style={{ margin: '36px 0 10px' }}><BigNumber size="xl" value={loss} onChange={setLoss} min={1} max={Math.max(1, Math.floor(kg - 40))} unit="kg" label="Kilograms to lose" /></div>
-          <Ruler min={1} max={80} step={1} value={loss} onChange={setLoss} label="Weight to lose" valueText={`${loss} kilograms`} />
+        {at === 'goal' && <>
+          <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What would you like to weigh?</h1>
+          <p className="muted" style={{ margin: '10px 0 0' }}>Saying the number out loud is an important (and hard) first step. You can change it later.</p>
+          <div style={{ margin: '36px 0 10px' }}><BigNumber size="xl" value={toU(goal)} onChange={v => setGoal(Math.min(fromU(v), kg - 0.1))} min={toU(40)} max={toU(kg)} decimals={unit === 'kg' ? 1 : 0} unit={unit} label="Goal weight" /></div>
+          <Ruler min={40} max={Math.max(41, Math.floor(kg))} step={0.1} value={goal} onChange={setGoal} label="Goal weight" valueText={`${goal.toFixed(1)} kilograms`} />
           <div className="card" style={{ background: 'var(--cobalt-soft)', color: 'var(--cobalt-deep)', padding: '16px 18px', marginTop: 16 }}>
-            At a safe 0.5 to 1 kg a week, that&apos;s about {Math.ceil(loss / 4)} to {Math.ceil(loss / 2.2)} months. Goal: {+(kg - loss).toFixed(1)} kg.
+            That&apos;s {toU(toLose)} {unit} to lose. At a safe 0.5 to 1 kg a week, about {Math.max(1, Math.ceil(toLose / 4))} to {Math.max(1, Math.ceil(toLose / 2.2))} months.
           </div>
+          <button onClick={() => setStep(1)} className="small" style={{ alignSelf: 'center', marginTop: 14, border: 0, background: 'none', textDecoration: 'underline' }}>Today: {toU(kg)} {unit}. Change it</button>
           <div className="grow" />
-          <button className="btn btn-primary" onClick={() => setStep(3)}>Next</button>
+          <button className="btn btn-primary" onClick={next}>Next</button>
         </>}
 
-        {step === 3 && <>
+        {at === 'habits' && <>
+          <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What do you want to work on?</h1>
+          <p className="muted" style={{ margin: '10px 0 16px' }}>Pick up to 3 to start. Tap Edit to make one fit you. You can change these any time.</p>
+          <div className="stack" style={{ gap: 8, overflowY: 'auto', margin: '0 -4px', padding: '0 4px 8px' }}>
+            {opts.map(o => (
+              <div key={o.id} className="card" style={{ padding: 0, border: o.on ? '2px solid var(--cobalt)' : '2px solid transparent' }}>
+                <div className="row" style={{ gap: 12, padding: '12px 12px 12px 14px' }}>
+                  <button aria-pressed={o.on} aria-label={`${o.on ? 'Remove' : 'Add'} ${o.title || 'habit'}`} onClick={() => patch(o.id, { on: !o.on })}
+                    style={{ width: 28, height: 28, flex: 'none', borderRadius: 999, display: 'grid', placeItems: 'center', border: o.on ? 0 : '1.5px solid var(--tick)', background: o.on ? 'var(--cobalt)' : 'transparent', color: '#fff' }}>
+                    {o.on && <Icon name="check" size={16} />}
+                  </button>
+                  <button onClick={() => patch(o.id, { on: !o.on })} className="stack grow" style={{ border: 0, background: 'none', textAlign: 'left', padding: 0, gap: 2, color: 'var(--ink)' }}>
+                    <span style={{ fontWeight: 600, fontSize: 17 }}>{o.title || 'Untitled'}</span>
+                    {o.detail && <span className="small">{o.detail}</span>}
+                  </button>
+                  <button onClick={() => patch(o.id, { editing: !o.editing, on: true })} style={{ border: 0, background: 'none', color: 'var(--cobalt)', fontWeight: 600, padding: '6px 4px' }}>{o.editing ? 'Done' : 'Edit'}</button>
+                </div>
+                {o.editing && <div className="stack" style={{ gap: 8, padding: '0 12px 12px' }}>
+                  <input aria-label="Habit name" value={o.title} onChange={e => patch(o.id, { title: e.target.value })} placeholder="e.g. Walk after lunch" style={field} autoFocus />
+                  <input aria-label="Details" value={o.detail} onChange={e => patch(o.id, { detail: e.target.value })} placeholder="Details (optional)" style={field} />
+                  {!OPTIONS.some(x => x.id === o.id) && <button onClick={() => setOpts(os => os.filter(x => x.id !== o.id))} style={{ alignSelf: 'flex-start', border: 0, background: 'none', color: 'var(--ink-3)', fontWeight: 600, padding: 4 }}>Remove</button>}
+                </div>}
+              </div>
+            ))}
+            <button className="chip" style={{ alignSelf: 'flex-start' }} onClick={() => setOpts(os => [...os, { id: Math.random().toString(36).slice(2, 9), title: '', detail: '', on: true, editing: true }])}>+ Add your own</button>
+          </div>
+          {picked > 3 && <p className="small" style={{ margin: '8px 0 0' }}>{picked} picked. Fewer habits are easier to keep, but it&apos;s your call.</p>}
+          <div style={{ height: 12 }} />
+          <button className="btn btn-primary" disabled={picked === 0} style={{ opacity: picked === 0 ? 0.4 : 1 }} onClick={() => { setOpts(os => os.map(o => ({ ...o, editing: false }))); next(); }}>{picked === 0 ? 'Pick at least one' : 'Next'}</button>
+        </>}
+
+        {at === 'bed' && <>
           <h1 className="h1 cobalt" style={{ marginTop: 24 }}>When do you usually fall asleep?</h1>
           <p className="muted" style={{ margin: '10px 0 0' }}>Be honest. Late nights make sugar cravings worse, so we&apos;ll fix this slowly.</p>
           <Value big={fmtTime(bed)} />
@@ -97,12 +153,12 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => voi
             {bed > 23 * 60 ? `Your bedtime moves 30 minutes earlier each week until 23:00. That's ${Math.ceil((bed - 23 * 60) / 30)} small steps.` : 'Already early. We’ll just help you keep it.'}
           </div>
           <div className="grow" />
-          <button className="btn btn-primary" onClick={() => setStep(4)}>Next</button>
+          <button className="btn btn-primary" onClick={next}>Next</button>
         </>}
 
-        {step === 4 && <>
+        {at === 'remind' && <>
           <h1 className="h1 cobalt" style={{ marginTop: 24 }}>Want a few gentle nudges?</h1>
-          <p className="muted" style={{ margin: '10px 0 20px' }}>Water, desk breaks, knee routine, last coffee and wind down. Short and kind, never nagging.</p>
+          <p className="muted" style={{ margin: '10px 0 20px' }}>Water, your habits, last coffee and wind down. Short and kind, never nagging.</p>
           <p className="small">On iPhone, add Lyta to your home screen first (Share, then Add to Home Screen) so reminders can reach you.</p>
           <div className="grow" />
           <div className="stack" style={{ gap: 10 }}>

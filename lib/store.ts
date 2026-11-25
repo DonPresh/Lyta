@@ -98,7 +98,7 @@ export function useLyta() {
 
   return {
     state, ready, today,
-    setProfile: (p: Profile, kg: number) => update(s => ({ ...s, profile: p, weights: [{ date: p.startedOn, kg }] })),
+    setProfile: (p: Profile, kg: number, habits?: HabitDef[]) => update(s => ({ ...s, profile: p, habits: habits?.length ? habits : s.habits, weights: [{ date: p.startedOn, kg }] })),
     updateProfile: (patch: Partial<Profile>) => update(s => s.profile ? { ...s, profile: { ...s.profile, ...patch } } : s),
     toggle: (id: string, date = today) => update(s => {
       const before = doneCount(s.days[date], s.habits);
