@@ -5,10 +5,24 @@ import { Icon } from './icons';
 import { Sheet, field } from './Sheet';
 import { addDays, bedTarget, coffeeCutoff, doneCount, isDone, ladderWeek, type Day, type HabitDef, type Profile } from '@/lib/store';
 
+function Resting() {
+  return (
+    <svg width="220" height="118" viewBox="0 0 220 118" fill="none" stroke="var(--ink)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M28 88h168M36 88v14M188 88v14M188 88V64" stroke="var(--tick)" />
+      <ellipse cx="52" cy="80" rx="18" ry="7" stroke="var(--tick)" />
+      <circle cx="58" cy="66" r="10" />
+      <path d="M68 72l56 6" />
+      <path d="M84 74l12-12 14 12" />
+      <path d="M124 78l22-14 20 18M124 78l50 6" />
+      <path d="M150 34h12l-12 14h12M172 16h9l-9 11h9" stroke="var(--cobalt)" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Still up' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
 const longDate = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-function HabitRow({ title, detail, done, onToggle }: { title: string; detail: string; done: boolean; onToggle: () => void }) {
+function HabitRow({ title, detail, done, onToggle, onStart }: { title: string; detail: string; done: boolean; onToggle: () => void; onStart?: () => void }) {
   return (
     <div className="card row" style={{ minHeight: 76, padding: '0 16px 0 14px', gap: 14 }}>
       <motion.button onClick={onToggle} aria-pressed={done} aria-label={(done ? 'Untick ' : 'Tick ') + title} whileTap={{ scale: 0.9 }}
@@ -21,23 +35,30 @@ function HabitRow({ title, detail, done, onToggle }: { title: string; detail: st
         <span className="h3" style={{ color: done ? 'var(--ink-3)' : 'var(--ink)', textDecoration: done ? 'line-through' : 'none' }}>{title}</span>
         <span className="small">{detail}</span>
       </div>
+      {onStart && <motion.button whileTap={{ scale: 0.94 }} onClick={onStart} aria-label={`${done ? 'Redo' : 'Start'} ${title}`}
+        style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, flex: 'none', background: done ? 'var(--sunken)' : 'var(--ink)', color: done ? 'var(--ink)' : '#fff', fontWeight: 600 }}>{done ? 'Redo' : 'Start'}</motion.button>}
     </div>
   );
 }
 
-export function Today({ profile, habits, days, today, streak, onToggle, setWater, onSugar, setSteps, saveHabit, deleteHabit }: {
+export function Today({ profile, habits, days, today, streak, onToggle, setWater, onSugar, setSteps, saveHabit, deleteHabit, onRoutine }: {
+  onRoutine: (h: HabitDef) => void;
   profile: Profile; habits: HabitDef[]; days: Record<string, Day>; today: string; streak: number;
   onToggle: (id: string, date: string) => void; setWater: (n: number, date: string) => void; onSugar: (date: string) => void; setSteps: (n: number, date: string) => void;
   saveHabit: (h: Omit<HabitDef, 'id'> & { id?: string }) => void; deleteHabit: (id: string) => void;
 }) {
   const [sel, setSel] = useState(today);
   const [weekOff, setWeekOff] = useState(0);
+  const [fillIn, setFillIn] = useState(false);
+  const pick = (iso: string) => { setSel(iso); setFillIn(false); };
   const isToday = sel === today;
   const d = days[sel] ?? {};
+  const hasData = Object.values(d.done ?? {}).some(Boolean) || (d.water ?? 0) > 0 || (d.steps ?? 0) > 0 || (d.sugar?.length ?? 0) > 0 || Object.keys(d.routines ?? {}).length > 0;
+  const beforeStart = sel < profile.startedOn;
   const total = habits.length, n = doneCount(d, habits);
   const bed = bedTarget(profile, sel);
   const left = habits.filter(h => !isDone(d, h.id));
-  const sub = !isToday ? (n === total ? 'A full day.' : n === 0 ? 'Nothing ticked. Missed something? Tick it now.' : `${n} of ${total} done that day.`) : n === 0 ? 'Tick one thing and you’ve started.' : n === total ? 'That’s the whole job today.' : left.length === 1 ? `One to go: ${left[0].kind === 'bed' ? 'bedtime' : left[0].title.toLowerCase()}.` : `${left.length} to go.`;
+  const sub = !isToday && (beforeStart || !hasData) ? (beforeStart ? 'Before you started.' : 'Nothing logged.') : !isToday ? (n === total ? 'A full day.' : n === 0 ? 'Nothing ticked. Missed something? Tick it now.' : `${n} of ${total} done that day.`) : n === 0 ? 'Tick one thing and you’ve started.' : n === total ? 'That’s the whole job today.' : left.length === 1 ? `One to go: ${left[0].kind === 'bed' ? 'bedtime' : left[0].title.toLowerCase()}.` : `${left.length} to go.`;
   const now = new Date(); const dow = (now.getDay() + 6) % 7;
   const week = Array.from({ length: 7 }, (_, i) => { const iso = addDays(today, i - dow + weekOff * 7); return { iso, label: 'MTWTFSS'[i], num: Number(iso.slice(8)), today: iso === today, sel: iso === sel, future: iso > today, mark: doneCount(days[iso], habits) > 0 }; });
   const water = d.water ?? 0, sugarN = d.sugar?.length ?? 0, steps = d.steps ?? 0;
@@ -50,12 +71,12 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
   return (
     <div className="screen" style={{ gap: 0 }}>
       <div className="row between" style={{ marginTop: 6 }}>
-        {isToday ? <div className="stack"><span className="small">{longDate()}</span><span className="h3">{greeting()}, Don</span></div>
+        {isToday ? <div className="stack"><span className="small">{longDate()}</span><span className="h3">{greeting()}{profile.name ? `, ${profile.name}` : ''}</span></div>
           : <div className="stack"><span className="small">Looking back</span><span className="h3">{selLabel}</span></div>}
         <div className="row" style={{ gap: 8 }}>
           {isToday ? <span className="row" style={{ gap: 6, height: 36, padding: '0 14px 0 12px', borderRadius: 999, background: 'var(--green)', color: '#fff', fontWeight: 600 }}>
             <Icon name="streak" size={16} />{streak > 0 ? streak : 'Day 1'}
-          </span> : <button onClick={() => { setSel(today); setWeekOff(0); }} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, background: 'var(--cobalt)', color: '#fff', fontWeight: 600 }}>Back to today</button>}
+          </span> : <button onClick={() => { pick(today); setWeekOff(0); }} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, background: 'var(--cobalt)', color: '#fff', fontWeight: 600 }}>Back to today</button>}
         </div>
       </div>
 
@@ -75,7 +96,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0,1fr))', gap: 6 }}>
         {week.map(w => (
-          <button key={w.iso} disabled={w.future} onClick={() => setSel(w.iso)} aria-pressed={w.sel} aria-label={new Date(w.iso + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <button key={w.iso} disabled={w.future} onClick={() => pick(w.iso)} aria-pressed={w.sel} aria-label={new Date(w.iso + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
             className="stack" style={{ alignItems: 'center', gap: 3, padding: '8px 0 7px', borderRadius: 16, border: w.today && !w.sel ? '1.5px solid var(--cobalt)' : '1.5px solid transparent', background: w.sel ? 'var(--cobalt)' : 'var(--card)', color: w.sel ? '#fff' : w.future ? 'var(--ink-3)' : 'var(--ink)', cursor: w.future ? 'default' : 'pointer' }}>
             <span style={{ fontSize: 13, fontWeight: 500, opacity: w.sel ? 1 : 0.6 }}>{w.label}</span>
             <span className="h3">{w.num}</span>
@@ -84,10 +105,18 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
         ))}
       </div>
 
+      {!isToday && !fillIn && (!hasData || beforeStart) ? (
+        <motion.div key={sel} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card stack" style={{ alignItems: 'center', textAlign: 'center', padding: '28px 22px 22px', marginTop: 14 }}>
+          <Resting />
+          <h2 className="h3" style={{ marginTop: 14 }}>{beforeStart ? 'Before Lyta' : 'A quiet day'}</h2>
+          <p className="muted" style={{ margin: '6px 0 18px', maxWidth: 280 }}>{beforeStart ? 'You hadn’t started yet. Nothing to see here.' : 'Nothing logged. Rest days happen, no guilt. If you did something and forgot to log it, add it now.'}</p>
+          {!beforeStart && <button className="btn btn-secondary" style={{ width: 'auto', padding: '0 22px', height: 48 }} onClick={() => setFillIn(true)}>Add what I did</button>}
+        </motion.div>
+      ) : <>
       <div className="stack" style={{ gap: 8, marginTop: 14 }}>
         <div className="row between"><span className="micro">{isToday ? 'Your plan for today' : 'Your plan that day'}</span>
           <button onClick={() => setEditHabits(true)} style={{ border: 0, background: 'none', color: 'var(--cobalt)', fontWeight: 600, height: 36 }}>Edit</button></div>
-        {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id, sel)} />)}
+        {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id, sel)} onStart={h.routine && isToday ? () => onRoutine(h) : undefined} />)}
       </div>
 
       <div className="card" style={{ padding: 16, marginTop: 12, background: 'var(--ink)', color: '#fff' }}>
@@ -121,6 +150,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
           <button onClick={() => onSugar(sel)} style={{ marginTop: 'auto', height: 40, borderRadius: 999, border: 0, background: 'var(--ink)', color: '#fff', fontWeight: 600 }}>I had sugar</button>
         </div>
       </div>
+      </>}
       <AnimatePresence>
         {editHabits && <HabitsSheet key="h" habits={habits} onClose={() => setEditHabits(false)} save={saveHabit} remove={deleteHabit} />}
         {stepsOpen && <StepsSheet key="s" steps={steps} goal={profile.stepGoal} onClose={() => setStepsOpen(false)} onSave={v => { setSteps(v, sel); setStepsOpen(false); }} />}

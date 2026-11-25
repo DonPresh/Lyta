@@ -1,18 +1,19 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 
-export type HabitDef = { id: string; title: string; detail: string; kind?: 'bed' };
+export type HabitDef = { id: string; title: string; detail: string; kind?: 'bed'; routine?: 'knee' };
+export type RoutineLog = { before: number; after?: number; gentle: boolean; stopped?: boolean; at: string };
 export type SugarLog = { at: string; what: string[]; why: string[]; strength: number; note?: string };
-export type Day = { done?: Record<string, boolean>; water?: number; steps?: number; sugar?: SugarLog[]; wake?: string; wakings?: number };
+export type Day = { done?: Record<string, boolean>; water?: number; steps?: number; sugar?: SugarLog[]; wake?: string; wakings?: number; routines?: Record<string, RoutineLog> };
 export type Pace = 0.5 | 0.75 | 1;
-export type Profile = { startKg: number; goalKg: number; bedStart: string; bedGoal: string; startedOn: string; stepGoal: number; pace: Pace };
+export type Profile = { name?: string; startKg: number; goalKg: number; bedStart: string; bedGoal: string; startedOn: string; stepGoal: number; pace: Pace };
 export type Weigh = { date: string; kg: number };
 export type State = { profile: Profile | null; habits: HabitDef[]; days: Record<string, Day>; weights: Weigh[]; points: number };
 
 const KEY = 'lyta-v1';
 export const DEFAULT_HABITS: HabitDef[] = [
   { id: 'food', title: 'Real food, not sugar', detail: 'Eat something real before noon' },
-  { id: 'knee', title: 'Knee routine', detail: '10 minutes, 2 rounds' },
+  { id: 'knee', title: 'Knee routine', detail: 'Guided, about 10 minutes', routine: 'knee' },
   { id: 'bed', title: 'In bed on time', detail: '', kind: 'bed' },
 ];
 const empty: State = { profile: null, habits: DEFAULT_HABITS, days: {}, weights: [], points: 0 };
@@ -73,13 +74,14 @@ const migrate = (raw: Record<string, unknown>): State => {
   const s = { ...empty, ...raw } as State & { profile: (Profile & { goalLossKg?: number }) | null };
   if (s.profile) {
     const p = s.profile;
-    s.profile = { ...p, goalKg: p.goalKg ?? p.startKg - (p.goalLossKg ?? 0), stepGoal: p.stepGoal ?? 6000, pace: p.pace ?? 0.75 };
+    s.profile = { ...p, name: p.name ?? 'Don', goalKg: p.goalKg ?? p.startKg - (p.goalLossKg ?? 0), stepGoal: p.stepGoal ?? 6000, pace: p.pace ?? 0.75 };
   }
   for (const [k, d] of Object.entries(s.days)) {
     const old = d as Day & Record<string, unknown>;
     if (!old.done) { s.days[k] = { ...d, done: { food: !!old.food, knee: !!old.knee, bed: !!old.bed } }; }
   }
   if (!s.habits?.length) s.habits = DEFAULT_HABITS;
+  s.habits = s.habits.map(h => h.id === 'knee' && !h.routine ? { ...h, routine: 'knee', detail: h.detail === '10 minutes, 2 rounds' ? 'Guided, about 10 minutes' : h.detail } : h);
   return s;
 };
 const load = (): State => { try { const raw = localStorage.getItem(KEY); return raw ? migrate(JSON.parse(raw)) : empty; } catch { return empty; } };
@@ -100,7 +102,8 @@ export function useLyta() {
     state, ready, today,
     setProfile: (p: Profile, kg: number, habits?: HabitDef[]) => update(s => ({ ...s, profile: p, habits: habits?.length ? habits : s.habits, weights: [{ date: p.startedOn, kg }] })),
     updateProfile: (patch: Partial<Profile>) => update(s => s.profile ? { ...s, profile: { ...s.profile, ...patch } } : s),
-    toggle: (id: string, date = today) => update(s => {
+    toggle: (id: string, date = today, force?: boolean) => update(s => {
+      if (force !== undefined && !!s.days[date]?.done?.[id] === force) return s;
       const before = doneCount(s.days[date], s.habits);
       const next = patchDay(s, d => ({ ...d, done: { ...(d.done ?? {}), [id]: !d.done?.[id] } }), date);
       const after = doneCount(next.days[date], s.habits), all = s.habits.length;
@@ -108,6 +111,7 @@ export function useLyta() {
       if (before < all && after === all) pts += 2; if (before === all && after < all) pts -= 2;
       return { ...next, points: Math.max(0, pts) };
     }),
+    logRoutine: (habitId: string, log: RoutineLog, date = today) => update(s => patchDay(s, d => ({ ...d, routines: { ...(d.routines ?? {}), [habitId]: log } }), date)),
     setWater: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, water: Math.min(12, Math.max(0, n)) }), date)),
     setSteps: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, steps: Math.max(0, Math.round(n)) }), date)),
     logSugar: (log: SugarLog, date = today) => update(s => ({ ...patchDay(s, d => ({ ...d, sugar: [...(d.sugar ?? []), log] }), date), points: s.points + 1 })),

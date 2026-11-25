@@ -15,7 +15,7 @@ const OPTIONS: Option[] = [
   { id: 'walk', title: 'Walk every day', detail: '20 minutes, any pace', on: false },
   { id: 'bed', title: 'Earlier bedtime', detail: '30 minutes earlier each week', kind: 'bed', on: false },
   { id: 'move', title: 'Get up every hour', detail: 'Stand and stretch for 2 minutes', on: false },
-  { id: 'knee', title: 'Knee-friendly routine', detail: '10 minutes, 2 rounds', on: false },
+  { id: 'knee', title: 'Knee-friendly routine', detail: 'Guided, about 10 minutes. Arthritis-friendly', routine: 'knee', on: false },
   { id: 'drinks', title: 'No sugary drinks', detail: 'Water, tea or black coffee instead', on: false },
   { id: 'protein', title: 'Protein at breakfast', detail: 'Eggs, beans, yoghurt or similar', on: false },
 ];
@@ -42,16 +42,17 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number, habits
   const [kg, setKg] = useState(100);
   const [goal, setGoal] = useState(80);
   const [bed, setBed] = useState(26 * 60); // 02:00, minutes from midnight of the previous day
+  const [name, setName] = useState('');
   const [unit, setUnit] = useState<'kg' | 'lbs'>('kg');
 
   const finish = async (askNotify: boolean) => {
     if (askNotify && 'Notification' in window) { try { await Notification.requestPermission(); } catch { /* not supported */ } }
-    const habits = opts.filter(o => o.on && o.title.trim()).map(({ id, title, detail, kind }) => ({ id, title: title.trim(), detail: detail.trim(), ...(kind ? { kind } : {}) }));
-    onDone({ startKg: kg, goalKg: Math.min(goal, kg - 0.1), bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate(), stepGoal: 6000, pace: 0.75 }, kg, habits);
+    const habits = opts.filter(o => o.on && o.title.trim()).map(({ id, title, detail, kind, routine }) => ({ id, title: title.trim(), detail: detail.trim(), ...(kind ? { kind } : {}), ...(routine ? { routine } : {}) }));
+    onDone({ name: name.trim(), startKg: kg, goalKg: Math.min(goal, kg - 0.1), bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate(), stepGoal: 6000, pace: 0.75 }, kg, habits);
   };
 
   const wantsBed = opts.some(o => o.on && o.kind === 'bed');
-  const flow = ['welcome', 'weight', 'goal', 'habits', ...(wantsBed ? ['bed'] : []), 'remind'] as const;
+  const flow = ['welcome', 'name', 'weight', 'goal', 'habits', ...(wantsBed ? ['bed'] : []), 'remind'] as const;
   const at = flow[Math.min(step, flow.length - 1)];
   const next = () => setStep(s => s + 1);
   const picked = opts.filter(o => o.on).length;
@@ -85,6 +86,16 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number, habits
         </div>}
         {step > 0 && <Progress step={step} total={flow.length - 1} />}
 
+        {at === 'name' && <>
+          <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What should we call you?</h1>
+          <p className="muted" style={{ margin: '10px 0 24px' }}>Just a first name or nickname. It stays on this phone.</p>
+          <input aria-label="Your name" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && name.trim()) next(); }} placeholder="Your name" autoFocus maxLength={24}
+            style={{ ...field, height: 72, fontSize: 32, fontWeight: 800, color: 'var(--cobalt)' }} />
+          <div className="grow" />
+          <button className="btn btn-primary" disabled={!name.trim()} onClick={next}>{name.trim() ? `Hi, ${name.trim()}` : 'Next'}</button>
+          <button className="btn" style={{ marginTop: 8 }} onClick={() => { setName(''); next(); }}>Skip</button>
+        </>}
+
         {at === 'weight' && <>
           <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What do you weigh today?</h1>
           <p className="muted" style={{ margin: '10px 0 0' }}>Weigh in before breakfast. Only you will ever see this number.</p>
@@ -108,7 +119,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number, habits
           <div className="card" style={{ background: 'var(--cobalt-soft)', color: 'var(--cobalt-deep)', padding: '16px 18px', marginTop: 16 }}>
             That&apos;s {toU(toLose)} {unit} to lose. At a safe 0.5 to 1 kg a week, about {Math.max(1, Math.ceil(toLose / 4))} to {Math.max(1, Math.ceil(toLose / 2.2))} months.
           </div>
-          <button onClick={() => setStep(1)} className="small" style={{ alignSelf: 'center', marginTop: 14, border: 0, background: 'none', textDecoration: 'underline' }}>Today: {toU(kg)} {unit}. Change it</button>
+          <button onClick={() => setStep(2)} className="small" style={{ alignSelf: 'center', marginTop: 14, border: 0, background: 'none', textDecoration: 'underline' }}>Today: {toU(kg)} {unit}. Change it</button>
           <div className="grow" />
           <button className="btn btn-primary" onClick={next}>Next</button>
         </>}
