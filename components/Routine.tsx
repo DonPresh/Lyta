@@ -50,6 +50,7 @@ export function RoutinePlayer({ routine, existing, onClose, onFinish }: {
   const [stopped, setStopped] = useState(false);
   const [after, setAfter] = useState<number | null>(null);
   const [doneSteps, setDoneSteps] = useState(0);
+  const [prevTimes] = useState(existing?.times ?? 0);
 
   const steps = useMemo(() => plan(routine, gentle), [routine, gentle]);
   const step = steps[i];
@@ -74,11 +75,11 @@ export function RoutinePlayer({ routine, existing, onClose, onFinish }: {
   const goTo = (n: number, completed: boolean) => {
     if (completed) setDoneSteps(d => d + 1);
     setCount(0); setHold(null); setPaused(true);
-    if (n >= steps.length) setPhase('after'); else setI(n);
+    if (n >= steps.length) { if (routine.painCheck) setPhase('after'); else { onFinish({ times: prevTimes + 1, at: new Date().toISOString() }, true); setDoneSteps(d => d); setPhase('done'); } } else setI(n);
   };
   const start = () => { setI(0); setCount(0); setHold(null); setPaused(true); setPhase('go'); };
   const finish = () => {
-    onFinish({ before: before ?? 0, after: after ?? undefined, gentle, stopped: stopped || undefined, at: new Date().toISOString() }, doneSteps > 0);
+    onFinish({ ...(routine.painCheck ? { before: before ?? 0, after: after ?? undefined, gentle } : { times: prevTimes + 1 }), stopped: stopped || undefined, at: new Date().toISOString() }, doneSteps > 0);
     setPhase('done');
   };
 
@@ -100,7 +101,18 @@ export function RoutinePlayer({ routine, existing, onClose, onFinish }: {
         </div>}
 
         <AnimatePresence mode="wait">
-          {phase === 'check' && <motion.div key="check" className="stack grow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          {phase === 'check' && !routine.painCheck && <motion.div key="intro" className="stack grow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <span className="micro" style={{ marginTop: 24 }}>{routine.name}{existing?.times ? ` · ${existing.times} today` : ''}</span>
+            <h1 className="h1 cobalt" style={{ marginTop: 8 }}>Up you get. {minutes(steps)} minutes.</h1>
+            <p className="muted" style={{ margin: '10px 0 18px' }}>{routine.note}</p>
+            <div className="stack" style={{ gap: 8 }}>
+              {routine.exercises.map((e, n) => <div key={e.id} className="card row" style={{ padding: '14px 16px', gap: 14 }}><span className="h3 cobalt" style={{ width: 20 }}>{n + 1}</span><span className="h3" style={{ flex: 1 }}>{e.name}</span><span className="small">{e.hold && e.reps === 1 ? `${e.hold}s` : `${e.reps}${e.sides ? ' each side' : ''}`}</span></div>)}
+            </div>
+            <div className="grow" style={{ minHeight: 20 }} />
+            <button className="btn btn-primary" onClick={start}>Start</button>
+          </motion.div>}
+
+          {phase === 'check' && routine.painCheck && <motion.div key="check" className="stack grow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <span className="micro" style={{ marginTop: 24 }}>{routine.name}</span>
             <h1 className="h1 cobalt" style={{ marginTop: 8 }}>How are your knees right now?</h1>
             <p className="muted" style={{ margin: '10px 0 20px' }}>Pick a number. We&apos;ll check again at the end so you can see what the routine does.</p>
@@ -128,7 +140,7 @@ export function RoutinePlayer({ routine, existing, onClose, onFinish }: {
           {phase === 'go' && step && <motion.div key={`go-${i}`} className="stack grow" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.2 }}>
             <div className="row" style={{ gap: 8, marginTop: 22, alignItems: 'center' }}>
               <h1 className="h1" style={{ flex: 1 }}>{step.ex.name}</h1>
-              {step.side && <span style={{ height: 32, padding: '0 12px', borderRadius: 999, background: 'var(--ink)', color: '#fff', fontWeight: 600, display: 'grid', placeItems: 'center', flex: 'none' }}>{step.side} leg</span>}
+              {step.side && <span style={{ height: 32, padding: '0 12px', borderRadius: 999, background: 'var(--ink)', color: '#fff', fontWeight: 600, display: 'grid', placeItems: 'center', flex: 'none' }}>{step.side} {step.ex.sideLabel ?? 'leg'}</span>}
             </div>
             <p className="muted" style={{ margin: '8px 0 10px' }}>{step.ex.setup}</p>
             <ol style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 4 }} className="body-l">{step.ex.steps.map(t => <li key={t}>{t}</li>)}</ol>
@@ -137,8 +149,8 @@ export function RoutinePlayer({ routine, existing, onClose, onFinish }: {
               {step.ex.hold ? (
                 <Ring pct={hold?.mode === 'hold' ? 1 - (hold.left - 1) / step.ex.hold : count / step.reps} label={paused ? 'Start the timer' : 'Pause'} onClick={reached ? undefined : () => setPaused(p => !p)} tone={hold?.mode === 'relax' ? 'var(--green)' : 'var(--cobalt)'}>
                   {reached ? <><span className="num num-l cobalt">{count}</span><span className="h3">done</span></>
-                    : paused ? <><span className="h2 cobalt">{count === 0 ? 'Tap to start' : 'Paused'}</span><span className="small">{count} of {step.reps} · hold {step.ex.hold}s</span></>
-                    : <><span className="micro">{hold?.mode === 'relax' ? 'Relax' : 'Hold'}</span><span className="num num-l" style={{ color: hold?.mode === 'relax' ? 'var(--green)' : 'var(--cobalt)' }}>{hold?.left ?? step.ex.hold}</span><span className="small">{count} of {step.reps}</span></>}
+                    : paused ? <><span className="h2 cobalt">{count === 0 ? 'Tap to start' : 'Paused'}</span><span className="small">{count} of {step.reps} · {step.reps === 1 ? `${step.ex.hold} seconds` : `hold ${step.ex.hold}s`}</span></>
+                    : <><span className="micro">{hold?.mode === 'relax' ? 'Relax' : step.ex.cue ?? 'Hold'}</span><span className="num num-l" style={{ color: hold?.mode === 'relax' ? 'var(--green)' : 'var(--cobalt)' }}>{hold?.left ?? step.ex.hold}</span><span className="small">{count} of {step.reps}</span></>}
                 </Ring>
               ) : (
                 <Ring pct={count / step.reps} label={`Count a rep. ${count} of ${step.reps}`} onClick={reached ? undefined : () => { buzz(); setCount(c => c + 1); }}>
@@ -169,14 +181,14 @@ export function RoutinePlayer({ routine, existing, onClose, onFinish }: {
 
           {phase === 'done' && <motion.div key="done" className="stack grow" style={{ alignItems: 'flex-start' }} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}>
             <div className="grow" />
-            <span className="num num-xl cobalt">{doneSteps > 0 ? '+1' : 'Rest'}</span>
-            <h1 className="h1" style={{ marginTop: 12 }}>{doneSteps > 0 ? 'Knees looked after.' : 'Resting is the right call today.'}</h1>
-            <p className="body-l muted" style={{ margin: '10px 0 0' }}>{doneSteps > 0 ? `${doneSteps} of ${steps.length} moves. Ticked off for today.` : 'Try the gentle version tomorrow.'}</p>
+            <span className="num num-xl cobalt">{doneSteps > 0 || !routine.painCheck ? '+1' : 'Rest'}</span>
+            <h1 className="h1" style={{ marginTop: 12 }}>{doneSteps > 0 || !routine.painCheck ? routine.done : 'Resting is the right call today.'}</h1>
+            <p className="body-l muted" style={{ margin: '10px 0 0' }}>{doneSteps > 0 || !routine.painCheck ? (routine.painCheck ? `${doneSteps} of ${steps.length} moves. Ticked off for today.` : `Break ${prevTimes + 1} today. See you in an hour.`) : 'Try the gentle version tomorrow.'}</p>
             <div className="grow" />
             <button className="btn btn-primary" onClick={onClose}>Back to today</button>
           </motion.div>}
         </AnimatePresence>
-        {existing && phase === 'check' && <p className="small" style={{ textAlign: 'center', margin: '8px 0 0' }}>Already done today ({existing.before} → {existing.after ?? '?'}). Doing it again replaces that.</p>}
+        {existing && routine.painCheck && phase === 'check' && <p className="small" style={{ textAlign: 'center', margin: '8px 0 0' }}>Already done today ({existing.before} → {existing.after ?? '?'}). Doing it again replaces that.</p>}
       </div>
 
       <AnimatePresence>{hurt && <Sheet title="Does it hurt?" onClose={() => setHurt(false)}>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Icon } from './icons';
 import { Sheet, field } from './Sheet';
+import { routineOf } from '@/lib/routines';
 import { addDays, bedTarget, coffeeCutoff, doneCount, isDone, ladderWeek, type Day, type HabitDef, type Profile } from '@/lib/store';
 
 function Resting() {
@@ -22,7 +23,7 @@ function Resting() {
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Still up' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
 const longDate = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-function HabitRow({ title, detail, done, onToggle, onStart }: { title: string; detail: string; done: boolean; onToggle: () => void; onStart?: () => void }) {
+function HabitRow({ title, detail, done, onToggle, onStart, startLabel = 'Start' }: { title: string; detail: string; done: boolean; onToggle: () => void; onStart?: () => void; startLabel?: string }) {
   return (
     <div className="card row" style={{ minHeight: 76, padding: '0 16px 0 14px', gap: 14 }}>
       <motion.button onClick={onToggle} aria-pressed={done} aria-label={(done ? 'Untick ' : 'Tick ') + title} whileTap={{ scale: 0.9 }}
@@ -35,8 +36,8 @@ function HabitRow({ title, detail, done, onToggle, onStart }: { title: string; d
         <span className="h3" style={{ color: done ? 'var(--ink-3)' : 'var(--ink)', textDecoration: done ? 'line-through' : 'none' }}>{title}</span>
         <span className="small">{detail}</span>
       </div>
-      {onStart && <motion.button whileTap={{ scale: 0.94 }} onClick={onStart} aria-label={`${done ? 'Redo' : 'Start'} ${title}`}
-        style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, flex: 'none', background: done ? 'var(--sunken)' : 'var(--ink)', color: done ? 'var(--ink)' : '#fff', fontWeight: 600 }}>{done ? 'Redo' : 'Start'}</motion.button>}
+      {onStart && <motion.button whileTap={{ scale: 0.94 }} onClick={onStart} aria-label={`${startLabel} ${title}`}
+        style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, flex: 'none', background: done ? 'var(--sunken)' : 'var(--ink)', color: done ? 'var(--ink)' : '#fff', fontWeight: 600 }}>{startLabel}</motion.button>}
     </div>
   );
 }
@@ -65,7 +66,16 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
   const [editHabits, setEditHabits] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
   const label = (h: HabitDef) => h.kind === 'bed' ? `In bed by ${bed}` : h.title;
-  const detail = (h: HabitDef) => h.kind === 'bed' ? `Bedtime ladder, week ${ladderWeek(profile, sel)} · last coffee ${coffeeCutoff(bed)}` : h.detail;
+  const logLine = (h: HabitDef) => {
+    const r = d.routines?.[h.id]; if (!r) return null;
+    const k = routineOf(h);
+    if (k === 'walk' && r.minutes) return `${r.minutes} min walked`;
+    if (k === 'desk' && r.times) return `${r.times} break${r.times > 1 ? 's' : ''} so far`;
+    if (k === 'knee' && r.before !== undefined) return r.after !== undefined ? `Knee pain ${r.before} → ${r.after}${r.gentle ? ' · gentle' : ''}` : 'Rested';
+    return null;
+  };
+  const startLabel = (h: HabitDef) => { const k = routineOf(h), r = d.routines?.[h.id]; return k === 'walk' ? (r ? 'Walk more' : 'Walk') : k === 'desk' ? (r ? 'Another' : 'Break') : isDone(d, h.id) ? 'Redo' : 'Start'; };
+  const detail = (h: HabitDef) => logLine(h) ?? (h.kind === 'bed' ? `Bedtime ladder, week ${ladderWeek(profile, sel)} · last coffee ${coffeeCutoff(bed)}` : h.detail);
   const selLabel = new Date(sel + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -116,7 +126,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
       <div className="stack" style={{ gap: 8, marginTop: 14 }}>
         <div className="row between"><span className="micro">{isToday ? 'Your plan for today' : 'Your plan that day'}</span>
           <button onClick={() => setEditHabits(true)} style={{ border: 0, background: 'none', color: 'var(--cobalt)', fontWeight: 600, height: 36 }}>Edit</button></div>
-        {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id, sel)} onStart={h.routine && isToday ? () => onRoutine(h) : undefined} />)}
+        {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id, sel)} onStart={routineOf(h) && isToday ? () => onRoutine(h) : undefined} startLabel={startLabel(h)} />)}
       </div>
 
       <div className="card" style={{ padding: 16, marginTop: 12, background: 'var(--ink)', color: '#fff' }}>

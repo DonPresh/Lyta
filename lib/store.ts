@@ -1,8 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 
-export type HabitDef = { id: string; title: string; detail: string; kind?: 'bed'; routine?: 'knee' };
-export type RoutineLog = { before: number; after?: number; gentle: boolean; stopped?: boolean; at: string };
+export type HabitDef = { id: string; title: string; detail: string; kind?: 'bed'; routine?: 'knee' | 'desk' | 'walk' };
+export type RoutineLog = { at: string; before?: number; after?: number; gentle?: boolean; stopped?: boolean; times?: number; minutes?: number };
 export type SugarLog = { at: string; what: string[]; why: string[]; strength: number; note?: string };
 export type Day = { done?: Record<string, boolean>; water?: number; steps?: number; sugar?: SugarLog[]; wake?: string; wakings?: number; routines?: Record<string, RoutineLog> };
 export type Pace = 0.5 | 0.75 | 1;

@@ -12,9 +12,9 @@ const fmtTime = (m: number) => { m = ((m % 1440) + 1440) % 1440; return String(M
 type Option = HabitDef & { on: boolean; editing?: boolean };
 const OPTIONS: Option[] = [
   { id: 'food', title: 'Real food, not sugar', detail: 'Eat something real before noon', on: false },
-  { id: 'walk', title: 'Walk every day', detail: '20 minutes, any pace', on: false },
+  { id: 'walk', title: 'Walk every day', detail: '20 minutes, any pace', routine: 'walk', on: false },
   { id: 'bed', title: 'Earlier bedtime', detail: '30 minutes earlier each week', kind: 'bed', on: false },
-  { id: 'move', title: 'Get up every hour', detail: 'Stand and stretch for 2 minutes', on: false },
+  { id: 'move', title: 'Get up every hour', detail: 'A short guided stretch', routine: 'desk', on: false },
   { id: 'knee', title: 'Knee-friendly routine', detail: 'Guided, about 10 minutes. Arthritis-friendly', routine: 'knee', on: false },
   { id: 'drinks', title: 'No sugary drinks', detail: 'Water, tea or black coffee instead', on: false },
   { id: 'protein', title: 'Protein at breakfast', detail: 'Eggs, beans, yoghurt or similar', on: false },

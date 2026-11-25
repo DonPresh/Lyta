@@ -7,7 +7,8 @@ import { Today } from '@/components/Today';
 import { SugarSheet } from '@/components/SugarSheet';
 import { WeightScreen } from '@/components/Weight';
 import { RoutinePlayer } from '@/components/Routine';
-import { ROUTINES } from '@/lib/routines';
+import { ROUTINES, routineOf } from '@/lib/routines';
+import { WalkTimer } from '@/components/Walk';
 import { Icon, type IconName } from '@/components/icons';
 import { addDays, isDone, streak, useLyta, type HabitDef } from '@/lib/store';
 
@@ -52,8 +53,14 @@ export default function Home() {
           ))}
         </nav>
       </>}
-      <AnimatePresence>{routineFor?.routine && ROUTINES[routineFor.routine] && <RoutinePlayer key="routine" routine={ROUTINES[routineFor.routine]} existing={state.days[today]?.routines?.[routineFor.id]}
-        onClose={() => setRoutineFor(null)} onFinish={(log, did) => { L.logRoutine(routineFor.id, log); if (did) toggle(routineFor.id, today, true); }} />}</AnimatePresence>
+      <AnimatePresence>{routineFor && (() => {
+        const kind = routineOf(routineFor), log = state.days[today]?.routines?.[routineFor.id];
+        if (kind === 'walk') return <WalkTimer key="walk" title={routineFor.title} walkedToday={log?.minutes ?? 0} onClose={() => setRoutineFor(null)}
+          onFinish={(min, steps) => { L.logRoutine(routineFor.id, { minutes: (log?.minutes ?? 0) + min, at: new Date().toISOString() }); if (steps) L.setSteps((state.days[today]?.steps ?? 0) + steps); toggle(routineFor.id, today, true); }} />;
+        if (kind && ROUTINES[kind]) return <RoutinePlayer key="routine" routine={ROUTINES[kind]} existing={log}
+          onClose={() => setRoutineFor(null)} onFinish={(l, did) => { L.logRoutine(routineFor.id, l); if (did) toggle(routineFor.id, today, true); }} />;
+        return null;
+      })()}</AnimatePresence>
       <AnimatePresence>{sugarDate && <SugarSheet onClose={() => setSugarDate(null)} onLog={l => logSugar(l, sugarDate)} lateNights={lateNights} />}</AnimatePresence>
     </main>
   );
