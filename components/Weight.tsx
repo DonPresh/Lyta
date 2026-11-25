@@ -49,6 +49,7 @@ export function WeightScreen({ state, today, saveWeight, deleteWeight, updatePro
   return (
     <div className="screen">
       <h2 className="h2" style={{ marginTop: 10 }}>Weight</h2>
+      <div className="split"><div className="col-main">
       <div className="row" style={{ alignItems: 'flex-end', gap: 8, marginTop: 10 }}>
         <span className="num num-l cobalt">{lost > 0 ? '−' + lost : now}</span>
         <span className="h3 cobalt" style={{ paddingBottom: 8 }}>{lost > 0 ? 'kg so far' : 'kg today'}</span>
@@ -61,6 +62,7 @@ export function WeightScreen({ state, today, saveWeight, deleteWeight, updatePro
       </div>
 
       <div style={{ marginTop: 16 }}><Chart weights={sorted} goal={p.goalKg} /></div>
+      </div><div className="col-side">
 
       <section className="card" style={{ marginTop: 12, padding: '18px 18px 16px', background: 'var(--cobalt)', color: '#fff' }}>
         <div className="row between"><span className="micro" style={{ color: 'rgba(255,255,255,.75)' }}>Your plan</span>
@@ -95,6 +97,7 @@ export function WeightScreen({ state, today, saveWeight, deleteWeight, updatePro
           </button>
         ))}
       </div>
+      </div></div>
 
       <AnimatePresence>
         {editing && <WeighSheet key="w" entry={editing === 'new' ? null : editing} today={today} fallbackKg={now} canDelete={state.weights.length > 1}

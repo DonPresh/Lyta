@@ -11,7 +11,7 @@ import { ROUTINES, routineOf } from '@/lib/routines';
 import { WalkTimer } from '@/components/Walk';
 import { StreakScreen } from '@/components/Streak';
 import { RewardsScreen } from '@/components/Rewards';
-import { Icon, type IconName } from '@/components/icons';
+import { Icon, LytaMark, type IconName } from '@/components/icons';
 import { addDays, isDone, streak, useLyta, type HabitDef } from '@/lib/store';
 
 type Tab = 'Today' | 'Streak' | 'Rewards' | 'Weight';
@@ -30,7 +30,7 @@ export default function Home() {
   const lateNights = Array.from({ length: 7 }, (_, i) => addDays(today, -i - 1)).filter(d => state.days[d] && !isDone(state.days[d], 'bed')).length;
 
   return (
-    <main className="app" style={!state.profile ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' } : undefined}>
+    <main className={`app${state.profile ? ' has-nav' : ''}`} style={!state.profile ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' } : undefined}>
       {loading && <Loader onDone={() => setLoading(false)} />}
       {ready && !state.profile && <Onboarding onDone={setProfile} />}
       {ready && state.profile && <>
@@ -39,9 +39,10 @@ export default function Home() {
         {tab === 'Rewards' && <RewardsScreen state={state} today={today} saveReward={L.saveReward} deleteReward={L.deleteReward} claimReward={L.claimReward} />}
         {tab === 'Weight' && <WeightScreen state={state} today={today} saveWeight={L.saveWeight} deleteWeight={L.deleteWeight} updateProfile={L.updateProfile} />}
         <nav className="tabbar" aria-label="Main">
+          <div className="nav-logo"><LytaMark size={26} /><span>lyta</span></div>
           {TABS.map(([t, ic]) => (
-            <button key={t} className="tab" aria-current={tab === t ? 'page' : undefined} aria-label={t} onClick={() => { setPickDate(undefined); setTab(t); }}>
-              <Icon name={ic} size={22} />{tab === t && <span>{t}</span>}
+            <button key={t} className="tab" aria-current={tab === t ? 'page' : undefined} data-tab={t} aria-label={t} onClick={() => { setPickDate(undefined); setTab(t); }}>
+              <Icon name={ic} size={22} /><span className="tab-label">{t}</span>
             </button>
           ))}
         </nav>

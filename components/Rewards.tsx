@@ -68,6 +68,7 @@ export function RewardsScreen({ state, today, saveReward, deleteReward, claimRew
 
   return (
     <div className="screen">
+      <div className="split"><div className="col-main">
       <h2 className="h2" style={{ marginTop: 10 }}>{rewards.length ? 'You have' : 'Rewards'}</h2>
       <div className="row" style={{ alignItems: 'flex-end', gap: 12, marginTop: 6 }}>
         <motion.span key={pts} initial={{ scale: 0.92, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} className="num num-xl cobalt">{pts}</motion.span>
@@ -86,7 +87,13 @@ export function RewardsScreen({ state, today, saveReward, deleteReward, claimRew
           </div>
           <span style={{ fontSize: 13, fontWeight: 500 }}>{next.milestone === 'kg5' ? `${np.left} kg more. Steady habits get you there.` : next.milestone ? `${np.left} more day${np.left === 1 ? '' : 's'} showing up.` : `About ${Math.max(1, Math.ceil(np.left / perFullDay))} more full day${Math.ceil(np.left / perFullDay) === 1 ? '' : 's'}.`}</span>
         </div>}
-
+        <details className="desk-only" style={{ marginTop: 24 }} open>
+          <summary className="micro" style={{ cursor: 'pointer', listStyle: 'none' }}>How points work</summary>
+          <div style={{ marginTop: 10 }}>{earn}</div>
+        </details>
+        </>}
+      </div>
+      {rewards.length > 0 && <div className="col-side">
         <div className="stack" style={{ gap: 8, marginTop: 18 }}>
           {open.map(r => { const p = progress(r), ready = p.left <= 0; return (
             <motion.div layout key={r.id} className="card row" style={{ padding: '10px 12px', gap: 12, borderRadius: 20 }}>
@@ -110,11 +117,12 @@ export function RewardsScreen({ state, today, saveReward, deleteReward, claimRew
           </div>
         </>}
 
-        <details style={{ marginTop: 24 }}>
+        <details className="mobile-only" style={{ marginTop: 24 }}>
           <summary className="micro" style={{ cursor: 'pointer', listStyle: 'none' }}>How points work ›</summary>
           <div style={{ marginTop: 10 }}>{earn}</div>
         </details>
-      </>}
+      </div>}
+      </div>
 
       <AnimatePresence>
         {sheet && <RewardSheet key="r" initial={sheet === 'new' ? undefined : sheet} onClose={() => setSheet(null)} onSave={saveReward} onDelete={sheet !== 'new' ? () => deleteReward(sheet.id) : undefined} />}

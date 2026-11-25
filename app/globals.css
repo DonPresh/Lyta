@@ -87,3 +87,35 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- Layout: phone first, then a website layout from 960px ---------- */
+.split, .col-main, .col-side { display: contents; }
+.tab-label { display: none; }
+.tab[aria-current="page"] .tab-label { display: inline; }
+.nav-logo, .desk-only { display: none; }
+
+@media (min-width: 960px) {
+  :root { --num-xl: 136px; --num-l: 96px; --h1: 44px; --h2: 34px; }
+  html, body { background: var(--cream); }
+  .app { max-width: 520px; padding-top: 56px; }
+  .app.has-nav { max-width: none; overflow: visible; padding: 44px 56px 64px calc(248px + 56px); }
+  .app.has-nav .screen { max-width: 1120px; margin: 0 auto; min-height: auto; }
+  .split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+  .col-main, .col-side { display: flex; flex-direction: column; }
+  .col-side { position: sticky; top: 32px; }
+  .mobile-only { display: none; }
+  .desk-only { display: block; }
+
+  .tabbar { left: 0; top: 0; bottom: 0; transform: none; width: 248px; height: auto; border-radius: 0; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; padding: 32px 16px; }
+  .nav-logo { display: flex; align-items: center; gap: 10px; color: var(--cream); font-weight: 900; font-size: 26px; letter-spacing: -0.03em; padding: 0 12px 28px; }
+  .tab { justify-content: flex-start; height: 52px; padding: 0 16px; font-size: 16px; }
+  .tab[aria-current="page"] { padding: 0 16px; }
+  .tab .tab-label { display: inline; }
+  .tab:not([aria-current="page"]):hover { background: rgba(255,255,255,.07); color: var(--cream); }
+  .tab[aria-current="page"][data-tab="Streak"] { color: var(--green); }
+  .tab[aria-current="page"][data-tab="Today"], .tab[aria-current="page"][data-tab="Rewards"], .tab[aria-current="page"][data-tab="Weight"] { color: var(--cobalt); }
+
+  .sheet { inset: 0; margin: auto; height: fit-content; max-width: 480px; border-radius: 32px; padding-bottom: 24px; }
+  .grabber { display: none; }
+  button:not(:disabled) { cursor: pointer; }
+}

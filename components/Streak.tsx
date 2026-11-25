@@ -54,6 +54,7 @@ export function StreakScreen({ state, today, onPickDay }: { state: State; today:
   return (
     <div className="screen">
       <h2 className="h2" style={{ marginTop: 10 }}>Streak</h2>
+      <div className="split"><div className="col-main">
       <div onDoubleClick={() => setReplay(r => r + 1)} style={{ margin: '6px -4px 0' }}>
         <GlassHero big={String(n)} caption={caption} height={140} replay={replay} />
       </div>
@@ -65,6 +66,7 @@ export function StreakScreen({ state, today, onPickDay }: { state: State; today:
           </motion.div>
         ))}
       </div>}
+      </div><div className="col-side">
 
       <div className="card" style={{ padding: '14px 14px 16px', marginTop: 12 }}>
         <div className="row between" style={{ marginBottom: 8 }}>
@@ -81,6 +83,7 @@ export function StreakScreen({ state, today, onPickDay }: { state: State; today:
         Tick 1 habit and the day counts. You get 2 freezes a month, used automatically, so one bad day never wipes you out.
       </div>}
       <p className="small" style={{ margin: '14px 0 0', textAlign: 'center' }}>Drag the bubble. Tap a day to see it.</p>
+      </div></div>
     </div>
   );
 }

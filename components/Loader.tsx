@@ -95,9 +95,10 @@ export function Loader({ onDone }: { onDone: () => void }) {
   }, []);
 
   return (
-    <div ref={wrap} onClick={() => doneRef.current()} role="img" aria-label="Lyta is loading"
-      style={{ position: 'fixed', inset: 0, maxWidth: 430, margin: '0 auto', background: 'var(--cream)', zIndex: 100 }}>
-      <canvas ref={cvRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+    <div onClick={() => doneRef.current()} role="img" aria-label="Lyta is loading" style={{ position: 'fixed', inset: 0, background: 'var(--cream)', zIndex: 100 }}>
+      <div ref={wrap} style={{ maxWidth: 430, height: '100%', margin: '0 auto' }}>
+        <canvas ref={cvRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+      </div>
     </div>
   );
 }

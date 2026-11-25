@@ -60,6 +60,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
   const d = days[sel] ?? {};
   const hasData = Object.values(d.done ?? {}).some(Boolean) || (d.water ?? 0) > 0 || (d.steps ?? 0) > 0 || (d.sugar?.length ?? 0) > 0 || Object.keys(d.routines ?? {}).length > 0;
   const beforeStart = sel < profile.startedOn;
+  const empty = !isToday && !fillIn && (!hasData || beforeStart);
   const total = habits.length, n = doneCount(d, habits);
   const bed = bedTarget(profile, sel);
   const left = habits.filter(h => !isDone(d, h.id));
@@ -94,6 +95,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
         </div>
       </div>
 
+      <div className="split"><div className="col-main">
       <div className="row between" style={{ alignItems: 'center', marginTop: 18 }}>
         <span className="num num-l cobalt" aria-label={`${n} of ${total} done today`}>{n}/{total}</span>
         <div className="stack" style={{ width: 150, gap: 8 }}>
@@ -119,19 +121,21 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
         ))}
       </div>
 
-      {!isToday && !fillIn && (!hasData || beforeStart) ? (
+      {empty ? (
         <motion.div key={sel} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card stack" style={{ alignItems: 'center', textAlign: 'center', padding: '28px 22px 22px', marginTop: 14 }}>
           <Resting />
           <h2 className="h3" style={{ marginTop: 14 }}>{beforeStart ? 'Before Lyta' : 'A quiet day'}</h2>
           <p className="muted" style={{ margin: '6px 0 18px', maxWidth: 280 }}>{beforeStart ? 'You hadn’t started yet. Nothing to see here.' : 'Nothing logged. Rest days happen, no guilt. If you did something and forgot to log it, add it now.'}</p>
           {!beforeStart && <button className="btn btn-secondary" style={{ width: 'auto', padding: '0 22px', height: 48 }} onClick={() => setFillIn(true)}>Add what I did</button>}
         </motion.div>
-      ) : <>
+      ) : (
       <div className="stack" style={{ gap: 8, marginTop: 14 }}>
         <div className="row between"><span className="micro">{isToday ? 'Your plan for today' : 'Your plan that day'}</span>
           <button onClick={() => setEditHabits(true)} style={{ border: 0, background: 'none', color: 'var(--cobalt)', fontWeight: 600, height: 36 }}>Edit</button></div>
         {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id, sel)} onStart={routineOf(h) && isToday ? () => onRoutine(h) : undefined} startLabel={startLabel(h)} />)}
+      </div>)}
       </div>
+      {!empty && <div className="col-side">
 
       <div className="card" style={{ padding: 16, marginTop: 12, background: 'var(--ink)', color: '#fff' }}>
         <div className="row between">
@@ -164,7 +168,8 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
           <button onClick={() => onSugar(sel)} style={{ marginTop: 'auto', height: 40, borderRadius: 999, border: 0, background: 'var(--ink)', color: '#fff', fontWeight: 600 }}>I had sugar</button>
         </div>
       </div>
-      </>}
+      </div>}
+      </div>
       <AnimatePresence>
         {editHabits && <HabitsSheet key="h" habits={habits} onClose={() => setEditHabits(false)} save={saveHabit} remove={deleteHabit} />}
         {stepsOpen && <StepsSheet key="s" steps={steps} goal={profile.stepGoal} onClose={() => setStepsOpen(false)} onSave={v => { setSteps(v, sel); setStepsOpen(false); }} />}
