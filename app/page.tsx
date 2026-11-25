@@ -34,7 +34,7 @@ export default function Home() {
       {loading && <Loader onDone={() => setLoading(false)} />}
       {ready && !state.profile && <Onboarding onDone={setProfile} />}
       {ready && state.profile && <>
-        {tab === 'Today' && <Today key={pickDate ?? 'today'} initialSel={pickDate} profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} setWater={L.setWater} onSugar={setSugarDate} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} onRoutine={setRoutineFor} />}
+        {tab === 'Today' && <Today key={pickDate ?? 'today'} initialSel={pickDate} profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} setWater={L.setWater} onSugar={setSugarDate} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} onRoutine={setRoutineFor} setMeal={L.setMeal} />}
         {tab === 'Streak' && <StreakScreen state={state} today={today} onPickDay={d => { setPickDate(d === today ? undefined : d); setTab('Today'); }} />}
         {tab === 'Rewards' && <RewardsScreen state={state} today={today} saveReward={L.saveReward} deleteReward={L.deleteReward} claimReward={L.claimReward} />}
         {tab === 'Weight' && <WeightScreen state={state} today={today} saveWeight={L.saveWeight} deleteWeight={L.deleteWeight} updateProfile={L.updateProfile} />}

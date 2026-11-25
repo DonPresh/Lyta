@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Icon } from './icons';
 import { Sheet, field } from './Sheet';
 import { routineOf } from '@/lib/routines';
-import { addDays, bedTarget, coffeeCutoff, doneCount, isDone, ladderWeek, type Day, type HabitDef, type Profile } from '@/lib/store';
+import { MealsCard } from './Meals';
+import { addDays, bedTarget, coffeeCutoff, doneCount, isDone, ladderWeek, type Day, type HabitDef, type Meal, type MealSlot, type Profile } from '@/lib/store';
 
 function Resting() {
   return (
@@ -42,8 +43,8 @@ function HabitRow({ title, detail, done, onToggle, onStart, startLabel = 'Start'
   );
 }
 
-export function Today({ profile, habits, days, today, streak, onToggle, setWater, onSugar, setSteps, saveHabit, deleteHabit, onRoutine, initialSel }: {
-  onRoutine: (h: HabitDef) => void; initialSel?: string;
+export function Today({ profile, habits, days, today, streak, onToggle, setWater, onSugar, setSteps, saveHabit, deleteHabit, onRoutine, initialSel, setMeal }: {
+  onRoutine: (h: HabitDef) => void; initialSel?: string; setMeal: (slot: MealSlot | 'snack', m: Meal | null, date: string, snackIndex?: number) => void;
   profile: Profile; habits: HabitDef[]; days: Record<string, Day>; today: string; streak: number;
   onToggle: (id: string, date: string) => void; setWater: (n: number, date: string) => void; onSugar: (date: string) => void; setSteps: (n: number, date: string) => void;
   saveHabit: (h: Omit<HabitDef, 'id'> & { id?: string }) => void; deleteHabit: (id: string) => void;
@@ -58,7 +59,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
   const pick = (iso: string) => { setSel(iso); setFillIn(false); };
   const isToday = sel === today;
   const d = days[sel] ?? {};
-  const hasData = Object.values(d.done ?? {}).some(Boolean) || (d.water ?? 0) > 0 || (d.steps ?? 0) > 0 || (d.sugar?.length ?? 0) > 0 || Object.keys(d.routines ?? {}).length > 0;
+  const hasData = Object.values(d.done ?? {}).some(Boolean) || (d.water ?? 0) > 0 || (d.steps ?? 0) > 0 || (d.sugar?.length ?? 0) > 0 || Object.keys(d.routines ?? {}).length > 0 || Object.keys(d.meals ?? {}).some(k => k !== 'snacks') || (d.meals?.snacks?.length ?? 0) > 0;
   const beforeStart = sel < profile.startedOn;
   const empty = !isToday && !fillIn && (!hasData || beforeStart);
   const total = habits.length, n = doneCount(d, habits);
@@ -134,6 +135,7 @@ export function Today({ profile, habits, days, today, streak, onToggle, setWater
           <button onClick={() => setEditHabits(true)} style={{ border: 0, background: 'none', color: 'var(--cobalt)', fontWeight: 600, height: 36 }}>Edit</button></div>
         {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id, sel)} onStart={routineOf(h) && isToday ? () => onRoutine(h) : undefined} startLabel={startLabel(h)} />)}
       </div>)}
+      {!empty && <MealsCard meals={d.meals ?? {}} isToday={isToday} onSet={(slot, m, i) => setMeal(slot, m, sel, i)} />}
       </div>
       {!empty && <div className="col-side">
 

@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 export type HabitDef = { id: string; title: string; detail: string; kind?: 'bed'; routine?: 'knee' | 'desk' | 'walk' };
 export type RoutineLog = { at: string; before?: number; after?: number; gentle?: boolean; stopped?: boolean; times?: number; minutes?: number };
 export type SugarLog = { at: string; what: string[]; why: string[]; strength: number; note?: string };
-export type Day = { done?: Record<string, boolean>; water?: number; steps?: number; sugar?: SugarLog[]; wake?: string; wakings?: number; routines?: Record<string, RoutineLog> };
+export type Meal = { what: string; at: string; skipped?: boolean; bought?: boolean };
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner';
+export type Meals = { breakfast?: Meal; lunch?: Meal; dinner?: Meal; snacks?: Meal[] };
+export type Day = { meals?: Meals; done?: Record<string, boolean>; water?: number; steps?: number; sugar?: SugarLog[]; wake?: string; wakings?: number; routines?: Record<string, RoutineLog> };
 export type Pace = 0.5 | 0.75 | 1;
 export type Profile = { name?: string; startKg: number; goalKg: number; bedStart: string; bedGoal: string; startedOn: string; stepGoal: number; pace: Pace };
 export type Weigh = { date: string; kg: number };
@@ -136,6 +139,12 @@ export function useLyta() {
       return { ...next, points: Math.max(0, pts) };
     }),
     logRoutine: (habitId: string, log: RoutineLog, bonus = 0, date = today) => update(s => ({ ...patchDay(s, d => ({ ...d, routines: { ...(d.routines ?? {}), [habitId]: log } }), date), points: s.points + bonus })),
+    setMeal: (slot: MealSlot | 'snack', meal: Meal | null, date = today, snackIndex?: number) => update(s => patchDay(s, d => {
+      const m: Meals = { ...(d.meals ?? {}) };
+      if (slot === 'snack') { const list = [...(m.snacks ?? [])]; if (snackIndex === undefined) { if (meal) list.push(meal); } else if (meal) list[snackIndex] = meal; else list.splice(snackIndex, 1); m.snacks = list.sort((a, b) => a.at < b.at ? -1 : 1); }
+      else if (meal) m[slot] = meal; else delete m[slot];
+      return { ...d, meals: m };
+    }, date)),
     setWater: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, water: Math.min(12, Math.max(0, n)) }), date)),
     setSteps: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, steps: Math.max(0, Math.round(n)) }), date)),
     logSugar: (log: SugarLog, date = today) => update(s => ({ ...patchDay(s, d => ({ ...d, sugar: [...(d.sugar ?? []), log] }), date), points: s.points + 1 })),
