@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Sheet, field } from './Sheet';
 import { Ruler } from './Ruler';
 import { Icon } from './icons';
+import { BigNumber } from './BigNumber';
 import { currentKg, fmtDate, plan, type Pace, type Profile, type State, type Weigh } from '@/lib/store';
 
 const PACES: [Pace, string, string][] = [[0.5, 'Steady', '0.5 kg a week'], [0.75, 'Balanced', '0.75 kg a week'], [1, 'Faster', '1 kg a week']];
@@ -89,7 +90,7 @@ export function WeightScreen({ state, today, saveWeight, deleteWeight, updatePro
       <div className="card" style={{ padding: '0 16px' }}>
         {[...sorted].reverse().map((w, i) => (
           <button key={w.date} onClick={() => setEditing(w)} className="row between" style={{ width: '100%', minHeight: 52, border: 0, background: 'none', borderTop: i ? '1px solid var(--line)' : 0, padding: 0, textAlign: 'left' }}>
-            <span className="body-l">{fmtDate(w.date, { weekday: 'short', day: 'numeric', month: 'short' })}{w.date === p.startedOn ? ' · start' : ''}</span>
+            <span className="body-l">{fmtDate(w.date, { weekday: 'short', day: 'numeric', month: 'short' })}{w.date === sorted[0].date ? ' · start' : ''}</span>
             <span className="row" style={{ gap: 6 }}><b>{w.kg} kg</b><Icon name="back" size={16} style={{ transform: 'rotate(180deg)', color: 'var(--ink-3)' }} /></span>
           </button>
         ))}
@@ -114,9 +115,8 @@ function WeighSheet({ entry, today, fallbackKg, canDelete, onClose, onSave, onDe
     <Sheet title={entry ? 'Edit weigh-in' : 'Log weight'} onClose={onClose}>
       <label className="micro" htmlFor="wdate">Date</label>
       <input id="wdate" type="date" value={date} max={today} onChange={e => setDate(e.target.value)} style={{ ...field, marginTop: 8 }} />
-      <div className="row" style={{ justifyContent: 'center', alignItems: 'flex-end', gap: 6, margin: '24px 0 8px' }}>
-        <span className="num num-l cobalt">{kg.toFixed(1)}</span><span className="h2 cobalt" style={{ fontWeight: 900 }}>kg</span>
-      </div>
+      <div style={{ margin: '24px 0 8px' }}><BigNumber value={kg} onChange={setKg} min={40} max={250} decimals={1} unit="kg" label="Weight in kilograms" /></div>
+      <p className="small" style={{ textAlign: 'center', margin: '0 0 6px' }}>Tap the number to type it, or slide the ruler.</p>
       <Ruler min={40} max={250} step={0.1} value={kg} onChange={setKg} label="Weight" valueText={`${kg.toFixed(1)} kilograms`} />
       <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => onSave({ date, kg: +kg.toFixed(1) }, entry?.date)}>{entry ? 'Save changes' : 'Log weight'}</button>
       {entry && canDelete && <button className="btn" style={{ marginTop: 8, color: '#B42318' }} onClick={() => onDelete(entry.date)}>Delete this weigh-in</button>}
@@ -131,9 +131,7 @@ function GoalSheet({ profile, now, onClose, onSave }: { profile: Profile; now: n
   const weeks = Math.max(0, Math.ceil((now - goal) / pace));
   return (
     <Sheet title="Your goal" onClose={onClose}>
-      <div className="row" style={{ justifyContent: 'center', alignItems: 'flex-end', gap: 6, margin: '8px 0' }}>
-        <span className="num num-l cobalt">{goal}</span><span className="h2 cobalt" style={{ fontWeight: 900 }}>kg</span>
-      </div>
+      <div style={{ margin: '8px 0' }}><BigNumber value={goal} onChange={setGoal} min={40} max={Math.max(41, Math.floor(now))} unit="kg" label="Goal weight in kilograms" /></div>
       <Ruler min={40} max={Math.max(41, Math.floor(now))} step={1} value={goal} onChange={setGoal} label="Goal weight" valueText={`${goal} kilograms`} />
       <p className="micro" style={{ margin: '20px 0 10px' }}>Pace</p>
       <div className="stack" style={{ gap: 8 }}>

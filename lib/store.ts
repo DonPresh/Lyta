@@ -85,6 +85,8 @@ const migrate = (raw: Record<string, unknown>): State => {
 const load = (): State => { try { const raw = localStorage.getItem(KEY); return raw ? migrate(JSON.parse(raw)) : empty; } catch { return empty; } };
 const save = (s: State) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* storage unavailable */ } };
 const uid = () => Math.random().toString(36).slice(2, 9);
+/** Keep the profile's start weight equal to the earliest weigh-in, so editing that entry fixes the start. */
+const syncStart = (s: State): State => { const first = [...s.weights].sort((a, b) => a.date < b.date ? -1 : 1)[0]; return s.profile && first ? { ...s, profile: { ...s.profile, startKg: first.kg } } : s; };
 
 export function useLyta() {
   const [state, setState] = useState<State>(empty);
@@ -112,9 +114,9 @@ export function useLyta() {
     saveWeight: (w: Weigh, replaceDate?: string) => update(s => {
       const rest = s.weights.filter(x => x.date !== w.date && x.date !== replaceDate);
       const isNew = !s.weights.some(x => x.date === w.date || x.date === replaceDate);
-      return { ...s, weights: [...rest, w].sort((a, b) => a.date < b.date ? -1 : 1), points: s.points + (isNew ? 3 : 0) };
+      return syncStart({ ...s, weights: [...rest, w].sort((a, b) => a.date < b.date ? -1 : 1), points: s.points + (isNew ? 3 : 0) });
     }),
-    deleteWeight: (date: string) => update(s => ({ ...s, weights: s.weights.length > 1 ? s.weights.filter(x => x.date !== date) : s.weights })),
+    deleteWeight: (date: string) => update(s => syncStart({ ...s, weights: s.weights.length > 1 ? s.weights.filter(x => x.date !== date) : s.weights })),
     saveHabit: (h: Omit<HabitDef, 'id'> & { id?: string }) => update(s => h.id ? { ...s, habits: s.habits.map(x => x.id === h.id ? { ...x, ...h, id: x.id } : x) } : { ...s, habits: [...s.habits, { ...h, id: uid() }] }),
     deleteHabit: (id: string) => update(s => ({ ...s, habits: s.habits.length > 1 ? s.habits.filter(h => h.id !== id) : s.habits })),
   };

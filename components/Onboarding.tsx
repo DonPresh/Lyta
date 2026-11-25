@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Ruler } from './Ruler';
 import { Icon, LytaMark } from './icons';
+import { BigNumber } from './BigNumber';
 import { isoDate, type Profile } from '@/lib/store';
 
 const fmtTime = (m: number) => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
@@ -32,7 +33,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => voi
 
   const finish = async (askNotify: boolean) => {
     if (askNotify && 'Notification' in window) { try { await Notification.requestPermission(); } catch { /* not supported */ } }
-    onDone({ startKg: kg, goalKg: kg - loss, bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate(), stepGoal: 6000, pace: 0.75 }, kg);
+    onDone({ startKg: kg, goalKg: +(kg - loss).toFixed(1), bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate(), stepGoal: 6000, pace: 0.75 }, kg);
   };
 
   const shown = unit === 'kg' ? kg : Math.round(kg * 2.2046);
@@ -63,8 +64,9 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => voi
         {step === 1 && <>
           <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What do you weigh today?</h1>
           <p className="muted" style={{ margin: '10px 0 0' }}>Weigh in before breakfast. Only you will ever see this number.</p>
-          <Value big={String(shown)} u={unit} />
-          <Ruler min={40} max={250} step={1} value={kg} onChange={setKg} label="Current weight" valueText={`${kg} kilograms`} />
+          <div style={{ margin: '36px 0 10px' }}><BigNumber size="xl" value={shown} onChange={v => setKg(unit === 'kg' ? v : Math.round(v / 2.2046 * 10) / 10)} min={unit === 'kg' ? 40 : 88} max={unit === 'kg' ? 250 : 550} decimals={unit === 'kg' ? 1 : 0} unit={unit} label="Your weight today" /></div>
+          <p className="small" style={{ textAlign: 'center', margin: '0 0 6px' }}>Tap the number to type it, or slide the ruler.</p>
+          <Ruler min={40} max={250} step={0.1} value={kg} onChange={setKg} label="Current weight" valueText={`${kg.toFixed(1)} kilograms`} />
           <div className="row" style={{ justifyContent: 'center', marginTop: 16 }}>
             <div className="row" style={{ background: 'var(--sunken)', borderRadius: 999, padding: 4, gap: 4 }} role="group" aria-label="Units">
               {(['kg', 'lbs'] as const).map(u => <button key={u} aria-pressed={unit === u} onClick={() => setUnit(u)} style={{ width: 72, height: 36, borderRadius: 999, border: 0, fontWeight: 600, background: unit === u ? 'var(--card)' : 'transparent', color: unit === u ? 'var(--ink)' : 'var(--ink-3)' }}>{u}</button>)}
@@ -77,10 +79,10 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => voi
         {step === 2 && <>
           <h1 className="h1 cobalt" style={{ marginTop: 24 }}>What&apos;s your weight loss goal?</h1>
           <p className="muted" style={{ margin: '10px 0 0' }}>Saying the number out loud is an important (and hard) first step.</p>
-          <Value big={String(loss)} u="kg" />
+          <div style={{ margin: '36px 0 10px' }}><BigNumber size="xl" value={loss} onChange={setLoss} min={1} max={Math.max(1, Math.floor(kg - 40))} unit="kg" label="Kilograms to lose" /></div>
           <Ruler min={1} max={80} step={1} value={loss} onChange={setLoss} label="Weight to lose" valueText={`${loss} kilograms`} />
           <div className="card" style={{ background: 'var(--cobalt-soft)', color: 'var(--cobalt-deep)', padding: '16px 18px', marginTop: 16 }}>
-            At a safe 0.5 to 1 kg a week, that&apos;s about {Math.ceil(loss / 4)} to {Math.ceil(loss / 2.2)} months. Goal: {kg - loss} kg.
+            At a safe 0.5 to 1 kg a week, that&apos;s about {Math.ceil(loss / 4)} to {Math.ceil(loss / 2.2)} months. Goal: {+(kg - loss).toFixed(1)} kg.
           </div>
           <div className="grow" />
           <button className="btn btn-primary" onClick={() => setStep(3)}>Next</button>

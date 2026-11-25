@@ -11,8 +11,8 @@ export function Ruler({ min, max, step, value, onChange, label, valueText }: {
   const count = Math.round((max - min) / step);
   const idx = Math.round((value - min) / step);
 
-  useEffect(() => { const el = ref.current; if (el) el.scrollLeft = idx * PX; // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Follow the value when it changes from outside (typed in), without fighting the user's scroll.
+  useEffect(() => { const el = ref.current; if (el && Math.abs(el.scrollLeft - idx * PX) > PX) el.scrollLeft = idx * PX; }, [idx]);
 
   const setFromScroll = () => {
     const el = ref.current; if (!el) return;
