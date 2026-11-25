@@ -25,90 +25,105 @@ function HabitRow({ title, detail, done, onToggle }: { title: string; detail: st
   );
 }
 
-export function Today({ profile, habits, days, today, streak, onToggle, onWater, onSugar, setSteps, saveHabit, deleteHabit }: {
+export function Today({ profile, habits, days, today, streak, onToggle, setWater, onSugar, setSteps, saveHabit, deleteHabit }: {
   profile: Profile; habits: HabitDef[]; days: Record<string, Day>; today: string; streak: number;
-  onToggle: (id: string) => void; onWater: () => void; onSugar: () => void; setSteps: (n: number) => void;
+  onToggle: (id: string, date: string) => void; setWater: (n: number, date: string) => void; onSugar: (date: string) => void; setSteps: (n: number, date: string) => void;
   saveHabit: (h: Omit<HabitDef, 'id'> & { id?: string }) => void; deleteHabit: (id: string) => void;
 }) {
-  const d = days[today] ?? {};
+  const [sel, setSel] = useState(today);
+  const [weekOff, setWeekOff] = useState(0);
+  const isToday = sel === today;
+  const d = days[sel] ?? {};
   const total = habits.length, n = doneCount(d, habits);
-  const bed = bedTarget(profile, today);
+  const bed = bedTarget(profile, sel);
   const left = habits.filter(h => !isDone(d, h.id));
-  const sub = n === 0 ? 'Tick one thing and you’ve started.' : n === total ? 'That’s the whole job today.' : left.length === 1 ? `One to go: ${left[0].kind === 'bed' ? 'bedtime' : left[0].title.toLowerCase()}.` : `${left.length} to go.`;
+  const sub = !isToday ? (n === total ? 'A full day.' : n === 0 ? 'Nothing ticked. Missed something? Tick it now.' : `${n} of ${total} done that day.`) : n === 0 ? 'Tick one thing and you’ve started.' : n === total ? 'That’s the whole job today.' : left.length === 1 ? `One to go: ${left[0].kind === 'bed' ? 'bedtime' : left[0].title.toLowerCase()}.` : `${left.length} to go.`;
   const now = new Date(); const dow = (now.getDay() + 6) % 7;
-  const week = Array.from({ length: 7 }, (_, i) => { const iso = addDays(today, i - dow); return { iso, label: 'MTWTFSS'[i], num: Number(iso.slice(8)), today: iso === today, future: iso > today, mark: doneCount(days[iso], habits) > 0 }; });
+  const week = Array.from({ length: 7 }, (_, i) => { const iso = addDays(today, i - dow + weekOff * 7); return { iso, label: 'MTWTFSS'[i], num: Number(iso.slice(8)), today: iso === today, sel: iso === sel, future: iso > today, mark: doneCount(days[iso], habits) > 0 }; });
   const water = d.water ?? 0, sugarN = d.sugar?.length ?? 0, steps = d.steps ?? 0;
   const [editHabits, setEditHabits] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
   const label = (h: HabitDef) => h.kind === 'bed' ? `In bed by ${bed}` : h.title;
-  const detail = (h: HabitDef) => h.kind === 'bed' ? `Bedtime ladder, week ${ladderWeek(profile, today)} · last coffee ${coffeeCutoff(bed)}` : h.detail;
+  const detail = (h: HabitDef) => h.kind === 'bed' ? `Bedtime ladder, week ${ladderWeek(profile, sel)} · last coffee ${coffeeCutoff(bed)}` : h.detail;
+  const selLabel = new Date(sel + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div className="screen" style={{ gap: 0 }}>
       <div className="row between" style={{ marginTop: 6 }}>
-        <div className="stack"><span className="small">{longDate()}</span><span className="h3">{greeting()}, Don</span></div>
+        {isToday ? <div className="stack"><span className="small">{longDate()}</span><span className="h3">{greeting()}, Don</span></div>
+          : <div className="stack"><span className="small">Looking back</span><span className="h3">{selLabel}</span></div>}
         <div className="row" style={{ gap: 8 }}>
-          <span className="row" style={{ gap: 6, height: 36, padding: '0 14px 0 12px', borderRadius: 999, background: 'var(--green)', color: '#fff', fontWeight: 600 }}>
+          {isToday ? <span className="row" style={{ gap: 6, height: 36, padding: '0 14px 0 12px', borderRadius: 999, background: 'var(--green)', color: '#fff', fontWeight: 600 }}>
             <Icon name="streak" size={16} />{streak > 0 ? streak : 'Day 1'}
-          </span>
+          </span> : <button onClick={() => { setSel(today); setWeekOff(0); }} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, background: 'var(--cobalt)', color: '#fff', fontWeight: 600 }}>Back to today</button>}
         </div>
       </div>
 
       <div className="row between" style={{ alignItems: 'center', marginTop: 18 }}>
         <span className="num num-l cobalt" aria-label={`${n} of ${total} done today`}>{n}/{total}</span>
         <div className="stack" style={{ width: 150, gap: 8 }}>
-          <span className="h3 cobalt">done today</span>
+          <span className="h3 cobalt">{isToday ? 'done today' : 'done that day'}</span>
           <div className="row" style={{ gap: 4 }}>{habits.map((h, i) => <motion.span key={h.id} initial={false} animate={{ backgroundColor: i < n ? '#1C35D6' : '#E5DDCC' }} style={{ flex: 1, height: 6, borderRadius: 3 }} />)}</div>
           <span className="small">{sub}</span>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0,1fr))', gap: 6, marginTop: 18 }}>
+      <div className="row between" style={{ marginTop: 16, marginBottom: 8 }}>
+        <button className="icon-btn" style={{ border: 0, width: 36, height: 36 }} aria-label="Previous week" onClick={() => setWeekOff(w => w - 1)}><Icon name="back" size={18} /></button>
+        <span className="small">{weekOff === 0 ? 'This week' : weekOff === -1 ? 'Last week' : `${-weekOff} weeks ago`}</span>
+        <button className="icon-btn" style={{ border: 0, width: 36, height: 36, opacity: weekOff >= 0 ? 0.25 : 1 }} aria-label="Next week" disabled={weekOff >= 0} onClick={() => setWeekOff(w => Math.min(0, w + 1))}><Icon name="back" size={18} style={{ transform: 'rotate(180deg)' }} /></button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0,1fr))', gap: 6 }}>
         {week.map(w => (
-          <div key={w.iso} className="stack" style={{ alignItems: 'center', gap: 3, padding: '8px 0 7px', borderRadius: 16, background: w.today ? 'var(--cobalt)' : 'var(--card)', color: w.today ? '#fff' : w.future ? 'var(--ink-3)' : 'var(--ink)' }}>
-            <span style={{ fontSize: 13, fontWeight: 500, opacity: w.today ? 1 : 0.6 }}>{w.label}</span>
+          <button key={w.iso} disabled={w.future} onClick={() => setSel(w.iso)} aria-pressed={w.sel} aria-label={new Date(w.iso + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+            className="stack" style={{ alignItems: 'center', gap: 3, padding: '8px 0 7px', borderRadius: 16, border: w.today && !w.sel ? '1.5px solid var(--cobalt)' : '1.5px solid transparent', background: w.sel ? 'var(--cobalt)' : 'var(--card)', color: w.sel ? '#fff' : w.future ? 'var(--ink-3)' : 'var(--ink)', cursor: w.future ? 'default' : 'pointer' }}>
+            <span style={{ fontSize: 13, fontWeight: 500, opacity: w.sel ? 1 : 0.6 }}>{w.label}</span>
             <span className="h3">{w.num}</span>
-            <span style={{ width: 6, height: 6, borderRadius: 3, background: w.mark ? (w.today ? '#fff' : 'var(--green)') : 'transparent' }} />
-          </div>
+            <span style={{ width: 6, height: 6, borderRadius: 3, background: w.mark ? (w.sel ? '#fff' : 'var(--green)') : 'transparent' }} />
+          </button>
         ))}
       </div>
 
       <div className="stack" style={{ gap: 8, marginTop: 14 }}>
-        <div className="row between"><span className="micro">Your plan for today</span>
+        <div className="row between"><span className="micro">{isToday ? 'Your plan for today' : 'Your plan that day'}</span>
           <button onClick={() => setEditHabits(true)} style={{ border: 0, background: 'none', color: 'var(--cobalt)', fontWeight: 600, height: 36 }}>Edit</button></div>
-        {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id)} />)}
+        {habits.map(h => <HabitRow key={h.id} title={label(h)} detail={detail(h)} done={isDone(d, h.id)} onToggle={() => onToggle(h.id, sel)} />)}
       </div>
 
-      <div className="card" style={{ padding: 16, marginTop: 12 }}>
+      <div className="card" style={{ padding: 16, marginTop: 12, background: 'var(--ink)', color: '#fff' }}>
         <div className="row between">
           <button onClick={() => setStepsOpen(true)} className="stack" style={{ border: 0, background: 'none', padding: 0, textAlign: 'left' }} aria-label={`Steps: ${steps} of ${profile.stepGoal}. Edit`}>
-            <span className="small">Steps</span>
-            <span className="row" style={{ gap: 4, alignItems: 'baseline' }}><span className="num num-m" style={{ color: 'var(--green)' }}>{steps.toLocaleString()}</span><span className="body-l muted">/ {profile.stepGoal.toLocaleString()}</span></span>
+            <span className="small" style={{ color: 'rgba(255,255,255,.7)' }}>Steps</span>
+            <span className="row" style={{ gap: 4, alignItems: 'baseline', color: '#fff' }}><span className="num num-m">{steps.toLocaleString()}</span><span className="body-l" style={{ color: 'rgba(255,255,255,.6)' }}>/ {profile.stepGoal.toLocaleString()}</span></span>
           </button>
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setSteps(steps + 1000)} style={{ height: 40, padding: '0 14px', borderRadius: 999, border: 0, background: 'var(--green-soft)', color: 'var(--green)', fontWeight: 600 }}>+1,000</motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setSteps(steps + 1000, sel)} style={{ height: 40, padding: '0 14px', borderRadius: 999, border: 0, background: '#fff', color: 'var(--ink)', fontWeight: 600 }}>+1,000</motion.button>
         </div>
-        <div style={{ height: 8, borderRadius: 4, background: 'var(--sunken)', marginTop: 12, overflow: 'hidden' }}>
-          <motion.div initial={false} animate={{ width: `${Math.min(100, steps / profile.stepGoal * 100)}%` }} style={{ height: '100%', background: 'var(--green)', borderRadius: 4 }} />
+        <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,.18)', marginTop: 12, overflow: 'hidden' }}>
+          <motion.div initial={false} animate={{ width: `${Math.min(100, steps / profile.stepGoal * 100)}%` }} style={{ height: '100%', background: '#fff', borderRadius: 4 }} />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
         <div className="card stack" style={{ padding: 16, gap: 10 }}>
           <div className="row between"><span className="small">Water</span>
-            <motion.button whileTap={{ scale: 0.88 }} onClick={onWater} aria-label="Add a glass of water" style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: 'var(--cobalt)', color: '#fff', display: 'grid', placeItems: 'center' }}><Icon name="plus" size={18} /></motion.button>
+            <div className="row" style={{ gap: 6 }}>
+              <motion.button whileTap={{ scale: 0.88 }} onClick={() => setWater(water - 1, sel)} disabled={water === 0} aria-label="Remove a glass of water" style={{ width: 36, height: 36, borderRadius: 999, border: '1.5px solid var(--line)', background: 'transparent', color: 'var(--ink)', display: 'grid', placeItems: 'center', fontSize: 22, lineHeight: 1, opacity: water === 0 ? 0.35 : 1 }}>−</motion.button>
+              <motion.button whileTap={{ scale: 0.88 }} onClick={() => setWater(water + 1, sel)} aria-label="Add a glass of water" style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: 'var(--cobalt)', color: '#fff', display: 'grid', placeItems: 'center' }}><Icon name="plus" size={18} /></motion.button>
+            </div>
           </div>
           <div className="row" style={{ gap: 4, alignItems: 'baseline' }}><span className="num num-m cobalt">{water}</span><span className="body-l muted">/ 6</span></div>
-          <div className="row" style={{ gap: 6 }}>{Array.from({ length: 6 }, (_, i) => <span key={i} style={{ width: 18, height: 22, borderRadius: '3px 3px 7px 7px', background: i < water ? 'var(--cobalt)' : 'transparent', border: i < water ? 0 : '1.5px solid var(--tick)' }} />)}</div>
+          <div className="row" style={{ gap: 6 }}>{Array.from({ length: 6 }, (_, i) => <button key={i} aria-label={`Set water to ${i + 1 === water ? i : i + 1} glasses`} onClick={() => setWater(i + 1 === water ? i : i + 1, sel)} style={{ width: 18, height: 22, padding: 0, borderRadius: '3px 3px 7px 7px', background: i < water ? 'var(--cobalt)' : 'transparent', border: i < water ? 0 : '1.5px solid var(--tick)' }} />)}</div>
+          <span className="small" style={{ marginTop: -4 }}>Tap a glass to set it</span>
         </div>
         <div className="card stack" style={{ padding: 16, gap: 10, background: 'var(--pink-soft)' }}>
-          <span className="small">Sugar today</span>
-          <span style={{ fontSize: 15, lineHeight: 1.35 }}>{sugarN === 0 ? 'Sweet thing? Log it, no guilt.' : `Logged ${sugarN === 1 ? 'once' : sugarN + ' times'}. Thanks for being honest.`}</span>
-          <button onClick={onSugar} style={{ marginTop: 'auto', height: 40, borderRadius: 999, border: 0, background: 'var(--ink)', color: '#fff', fontWeight: 600 }}>I had sugar</button>
+          <span className="small">{isToday ? "Sugar today" : "Sugar that day"}</span>
+          <span style={{ fontSize: 15, lineHeight: 1.35 }}>{sugarN === 0 ? (isToday ? 'Sweet thing? Log it, no guilt.' : 'Nothing logged that day.') : `Logged ${sugarN === 1 ? 'once' : sugarN + ' times'}. Thanks for being honest.`}</span>
+          <button onClick={() => onSugar(sel)} style={{ marginTop: 'auto', height: 40, borderRadius: 999, border: 0, background: 'var(--ink)', color: '#fff', fontWeight: 600 }}>I had sugar</button>
         </div>
       </div>
       <AnimatePresence>
         {editHabits && <HabitsSheet key="h" habits={habits} onClose={() => setEditHabits(false)} save={saveHabit} remove={deleteHabit} />}
-        {stepsOpen && <StepsSheet key="s" steps={steps} goal={profile.stepGoal} onClose={() => setStepsOpen(false)} onSave={v => { setSteps(v); setStepsOpen(false); }} />}
+        {stepsOpen && <StepsSheet key="s" steps={steps} goal={profile.stepGoal} onClose={() => setStepsOpen(false)} onSave={v => { setSteps(v, sel); setStepsOpen(false); }} />}
       </AnimatePresence>
     </div>
   );
@@ -154,7 +169,7 @@ function StepsSheet({ steps, goal, onClose, onSave }: { steps: number; goal: num
   return (
     <Sheet title="Steps today" onClose={onClose}>
       <p className="muted" style={{ margin: '0 0 14px' }}>Copy today’s number from your phone’s Health or Fit app. Lyta will read it for you once it’s a native app.</p>
-      <input inputMode="numeric" aria-label="Steps" value={v} onChange={e => setV(e.target.value)} placeholder="4200" style={{ ...field, height: 72, fontSize: 40, fontWeight: 800, textAlign: 'center', color: 'var(--green)' }} />
+      <input inputMode="numeric" aria-label="Steps" value={v} onChange={e => setV(e.target.value)} placeholder="4200" style={{ ...field, height: 72, fontSize: 40, fontWeight: 800, textAlign: 'center', color: 'var(--ink)' }} />
       <p className="small" style={{ textAlign: 'center', margin: '10px 0 0' }}>{n >= goal ? 'Goal reached.' : `${(goal - n).toLocaleString()} to go. A 10 minute walk is about 1,000 steps.`}</p>
       <button className="btn btn-primary" style={{ marginTop: 18 }} onClick={() => onSave(n)}>Save steps</button>
     </Sheet>

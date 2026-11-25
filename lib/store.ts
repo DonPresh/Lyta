@@ -27,7 +27,7 @@ const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); let v = 
 const toTime = (v: number) => { v = ((v % 1440) + 1440) % 1440; return String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0'); };
 export const bedTarget = (p: Profile, today = isoDate()) => { const week = Math.max(0, Math.floor(daysBetween(p.startedOn, today) / 7)); return toTime(Math.max(toMin(p.bedGoal), toMin(p.bedStart) - 30 * week)); };
 export const coffeeCutoff = (bed: string) => toTime(toMin(bed) - 8 * 60);
-export const ladderWeek = (p: Profile, today = isoDate()) => Math.floor(daysBetween(p.startedOn, today) / 7) + 1;
+export const ladderWeek = (p: Profile, today = isoDate()) => Math.max(1, Math.floor(daysBetween(p.startedOn, today) / 7) + 1);
 
 export const isDone = (d: Day | undefined, id: string) => !!d?.done?.[id];
 export const doneCount = (d: Day | undefined, habits: HabitDef[]) => habits.filter(h => isDone(d, h.id)).length;
@@ -94,23 +94,23 @@ export function useLyta() {
   useEffect(() => { setState(load()); setReady(true); }, []);
   const update = useCallback((fn: (s: State) => State) => setState(prev => { const next = fn(prev); save(next); return next; }), []);
   const today = isoDate();
-  const patchDay = (s: State, fn: (d: Day) => Day) => ({ ...s, days: { ...s.days, [today]: fn({ ...(s.days[today] ?? {}) }) } });
+  const patchDay = (s: State, fn: (d: Day) => Day, date = today) => ({ ...s, days: { ...s.days, [date]: fn({ ...(s.days[date] ?? {}) }) } });
 
   return {
     state, ready, today,
     setProfile: (p: Profile, kg: number) => update(s => ({ ...s, profile: p, weights: [{ date: p.startedOn, kg }] })),
     updateProfile: (patch: Partial<Profile>) => update(s => s.profile ? { ...s, profile: { ...s.profile, ...patch } } : s),
-    toggle: (id: string) => update(s => {
-      const before = doneCount(s.days[today], s.habits);
-      const next = patchDay(s, d => ({ ...d, done: { ...(d.done ?? {}), [id]: !d.done?.[id] } }));
-      const after = doneCount(next.days[today], s.habits), all = s.habits.length;
+    toggle: (id: string, date = today) => update(s => {
+      const before = doneCount(s.days[date], s.habits);
+      const next = patchDay(s, d => ({ ...d, done: { ...(d.done ?? {}), [id]: !d.done?.[id] } }), date);
+      const after = doneCount(next.days[date], s.habits), all = s.habits.length;
       let pts = s.points + (after > before ? 1 : -1);
       if (before < all && after === all) pts += 2; if (before === all && after < all) pts -= 2;
       return { ...next, points: Math.max(0, pts) };
     }),
-    addWater: () => update(s => patchDay(s, d => ({ ...d, water: ((d.water ?? 0) + 1) % 7 }))),
-    setSteps: (n: number) => update(s => patchDay(s, d => ({ ...d, steps: Math.max(0, Math.round(n)) }))),
-    logSugar: (log: SugarLog) => update(s => ({ ...patchDay(s, d => ({ ...d, sugar: [...(d.sugar ?? []), log] })), points: s.points + 1 })),
+    setWater: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, water: Math.min(12, Math.max(0, n)) }), date)),
+    setSteps: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, steps: Math.max(0, Math.round(n)) }), date)),
+    logSugar: (log: SugarLog, date = today) => update(s => ({ ...patchDay(s, d => ({ ...d, sugar: [...(d.sugar ?? []), log] }), date), points: s.points + 1 })),
     saveWeight: (w: Weigh, replaceDate?: string) => update(s => {
       const rest = s.weights.filter(x => x.date !== w.date && x.date !== replaceDate);
       const isNew = !s.weights.some(x => x.date === w.date || x.date === replaceDate);

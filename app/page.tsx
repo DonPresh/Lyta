@@ -24,10 +24,10 @@ function Soon({ title, big, unit, line }: { title: string; big: string; unit: st
 
 export default function Home() {
   const L = useLyta();
-  const { state, ready, today, setProfile, toggle, addWater, logSugar } = L;
+  const { state, ready, today, setProfile, toggle, logSugar } = L;
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('Today');
-  const [sugarOpen, setSugarOpen] = useState(false);
+  const [sugarDate, setSugarDate] = useState<string | null>(null);
 
   const s = streak(state, today);
   const lateNights = Array.from({ length: 7 }, (_, i) => addDays(today, -i - 1)).filter(d => state.days[d] && !isDone(state.days[d], 'bed')).length;
@@ -37,7 +37,7 @@ export default function Home() {
       {loading && <Loader onDone={() => setLoading(false)} />}
       {ready && !state.profile && <Onboarding onDone={setProfile} />}
       {ready && state.profile && <>
-        {tab === 'Today' && <Today profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} onWater={addWater} onSugar={() => setSugarOpen(true)} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} />}
+        {tab === 'Today' && <Today profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} setWater={L.setWater} onSugar={setSugarDate} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} />}
         {tab === 'Streak' && <Soon title="Streak" big={String(s)} unit="days showed up" line="Tick one habit and the day counts. You get 2 freezes a month, used automatically." />}
         {tab === 'Rewards' && <Soon title="Rewards" big={String(state.points)} unit="points" line="1 per habit, 2 bonus for a full day, 1 for logging sugar honestly." />}
         {tab === 'Weight' && <WeightScreen state={state} today={today} saveWeight={L.saveWeight} deleteWeight={L.deleteWeight} updateProfile={L.updateProfile} />}
@@ -49,7 +49,7 @@ export default function Home() {
           ))}
         </nav>
       </>}
-      <AnimatePresence>{sugarOpen && <SugarSheet onClose={() => setSugarOpen(false)} onLog={logSugar} lateNights={lateNights} />}</AnimatePresence>
+      <AnimatePresence>{sugarDate && <SugarSheet onClose={() => setSugarDate(null)} onLog={l => logSugar(l, sugarDate)} lateNights={lateNights} />}</AnimatePresence>
     </main>
   );
 }
