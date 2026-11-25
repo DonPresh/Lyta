@@ -37,7 +37,7 @@ function HabitRow({ title, detail, done, onToggle, onStart, startLabel = 'Start'
         <span className="small">{detail}</span>
       </div>
       {onStart && <motion.button whileTap={{ scale: 0.94 }} onClick={onStart} aria-label={`${startLabel} ${title}`}
-        style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, flex: 'none', background: done ? 'var(--sunken)' : 'var(--ink)', color: done ? 'var(--ink)' : '#fff', fontWeight: 600 }}>{startLabel}</motion.button>}
+        style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, flex: 'none', background: done ? 'var(--sunken)' : 'var(--orange)', color: 'var(--ink)', fontWeight: 600 }}>{startLabel}</motion.button>}
     </div>
   );
 }

@@ -56,9 +56,11 @@ export default function Home() {
       <AnimatePresence>{routineFor && (() => {
         const kind = routineOf(routineFor), log = state.days[today]?.routines?.[routineFor.id];
         if (kind === 'walk') return <WalkTimer key="walk" title={routineFor.title} walkedToday={log?.minutes ?? 0} onClose={() => setRoutineFor(null)}
-          onFinish={(min, steps) => { L.logRoutine(routineFor.id, { minutes: (log?.minutes ?? 0) + min, at: new Date().toISOString() }); if (steps) L.setSteps((state.days[today]?.steps ?? 0) + steps); toggle(routineFor.id, today, true); }} />;
-        if (kind && ROUTINES[kind]) return <RoutinePlayer key="routine" routine={ROUTINES[kind]} existing={log}
-          onClose={() => setRoutineFor(null)} onFinish={(l, did) => { L.logRoutine(routineFor.id, l); if (did) toggle(routineFor.id, today, true); }} />;
+          onFinish={(min, steps) => { L.logRoutine(routineFor.id, { minutes: (log?.minutes ?? 0) + min, at: new Date().toISOString() }, log ? 0 : 2); if (steps) L.setSteps((state.days[today]?.steps ?? 0) + steps); toggle(routineFor.id, today, true); }} />;
+        const month = Object.entries(state.days).filter(([k]) => k.slice(0, 7) === today.slice(0, 7)).map(([, d]) => d.routines?.[routineFor.id]).filter(r => r && !(r.stopped && r.after === undefined));
+        const monthCount = kind === 'desk' ? month.reduce((t, r) => t + (r?.times ?? 0), 0) : month.length;
+        if (kind && ROUTINES[kind]) return <RoutinePlayer key="routine" routine={ROUTINES[kind]} existing={log} monthCount={monthCount}
+          onClose={() => setRoutineFor(null)} onFinish={(l, did) => { L.logRoutine(routineFor.id, l, did && !log ? 2 : 0); if (did) toggle(routineFor.id, today, true); }} />;
         return null;
       })()}</AnimatePresence>
       <AnimatePresence>{sugarDate && <SugarSheet onClose={() => setSugarDate(null)} onLog={l => logSugar(l, sugarDate)} lateNights={lateNights} />}</AnimatePresence>

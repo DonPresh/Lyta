@@ -111,7 +111,7 @@ export function useLyta() {
       if (before < all && after === all) pts += 2; if (before === all && after < all) pts -= 2;
       return { ...next, points: Math.max(0, pts) };
     }),
-    logRoutine: (habitId: string, log: RoutineLog, date = today) => update(s => patchDay(s, d => ({ ...d, routines: { ...(d.routines ?? {}), [habitId]: log } }), date)),
+    logRoutine: (habitId: string, log: RoutineLog, bonus = 0, date = today) => update(s => ({ ...patchDay(s, d => ({ ...d, routines: { ...(d.routines ?? {}), [habitId]: log } }), date), points: s.points + bonus })),
     setWater: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, water: Math.min(12, Math.max(0, n)) }), date)),
     setSteps: (n: number, date = today) => update(s => patchDay(s, d => ({ ...d, steps: Math.max(0, Math.round(n)) }), date)),
     logSugar: (log: SugarLog, date = today) => update(s => ({ ...patchDay(s, d => ({ ...d, sugar: [...(d.sugar ?? []), log] }), date), points: s.points + 1 })),

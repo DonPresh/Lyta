@@ -20,7 +20,7 @@ export const KNEE: Routine = {
   name: 'Knee routine',
   rounds: 1,
   painCheck: true,
-  done: 'Knees looked after.',
+  done: 'Your knees say thank you.',
   note: 'Low impact and kind to arthritic knees. No kneeling, jumping or deep squats.',
   exercises: [
     { id: 'quad', name: 'Thigh squeeze', setup: 'Sit or lie with your legs straight out.', steps: ['Tighten the muscle on top of your thigh', 'Press the back of your knee down', 'Hold, then relax'], easier: 'Put a rolled towel under your knee and press into it.', reps: 10, hold: 5, sides: true },
@@ -37,7 +37,7 @@ export const DESK: Routine = {
   name: 'Desk break',
   rounds: 1,
   painCheck: false,
-  done: 'Unstuck.',
+  done: 'Unstuck. Back to it.',
   note: 'Six easy moves, standing. Nothing that loads the knees.',
   exercises: [
     { id: 'up', name: 'Stand up', setup: 'Push back your chair and stand.', steps: ['Shake out your arms and legs', 'Take a few slow breaths'], easier: 'Use the desk to push up.', reps: 1, hold: 15, sides: false, cue: 'Shake it out' },
