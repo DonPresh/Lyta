@@ -1,0 +1,85 @@
+/* Lyta design tokens, matching the Figma colour and text styles */
+:root {
+  --cream: #FBF6EC;
+  --card: #FFFFFF;
+  --sunken: #F2ECDF;
+  --cobalt: #1C35D6;
+  --cobalt-soft: #E3E7FB;
+  --cobalt-deep: #10208F;
+  --ink: #121318;
+  --ink-2: #5C5850;
+  --ink-3: #8F8A7F;
+  --line: #E5DDCC;
+  --tick: #B9B1A2;
+  --green: #0B6B4F;
+  --green-soft: #DCEBE4;
+  --orange: #FF8A3D;
+  --orange-soft: #FFE7D6;
+  --pink: #F4B9D2;
+  --pink-soft: #FBE4EE;
+
+  --num-xl: 112px;
+  --num-l: 80px;
+  --num-m: 48px;
+  --h1: 36px;
+  --h2: 28px;
+  --h3: 20px;
+  --pad: 18px;
+  --radius-card: 24px;
+}
+
+* { box-sizing: border-box; min-width: 0; }
+html, body { margin: 0; background: #EDE6D8; color: var(--ink); -webkit-tap-highlight-color: transparent; }
+body { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 15px; line-height: 1.4; letter-spacing: -0.003em; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 3px; }
+
+.app {
+  position: relative; max-width: 430px; margin: 0 auto; min-height: 100dvh;
+  background: var(--cream); overflow: hidden;
+  padding: max(env(safe-area-inset-top), 16px) var(--pad) calc(env(safe-area-inset-bottom) + 110px);
+}
+.screen { display: flex; flex-direction: column; min-height: calc(100dvh - 126px); }
+.grow { flex: 1; }
+
+.num { font-weight: 900; letter-spacing: -0.06em; line-height: 0.88; font-variant-numeric: tabular-nums; }
+.num-xl { font-size: var(--num-xl); }
+.num-l { font-size: var(--num-l); }
+.num-m { font-size: var(--num-m); font-weight: 800; letter-spacing: -0.04em; }
+.h1 { font-size: var(--h1); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
+.h2 { font-size: var(--h2); font-weight: 700; line-height: 1.1; letter-spacing: -0.025em; margin: 0; }
+.h3 { font-size: var(--h3); font-weight: 600; line-height: 1.2; letter-spacing: -0.015em; margin: 0; }
+.body-l { font-size: 17px; font-weight: 500; }
+.small { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.micro { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.muted { color: var(--ink-2); }
+.cobalt { color: var(--cobalt); }
+
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px; border-radius: 999px; border: 1.5px solid transparent; font-size: 16px; font-weight: 600; }
+.btn-primary { background: var(--cobalt); color: #fff; }
+.btn-dark { background: var(--ink); color: #fff; }
+.btn-secondary { background: transparent; border-color: var(--ink); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+.icon-btn { width: 44px; height: 44px; flex: none; border-radius: 999px; border: 1.5px solid var(--ink); background: transparent; display: grid; place-items: center; padding: 0; }
+
+.card { background: var(--card); border-radius: var(--radius-card); }
+
+.chip { height: 44px; padding: 0 18px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); font-size: 16px; font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--cobalt); border-color: var(--cobalt); color: #fff; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.row { display: flex; align-items: center; gap: 12px; }
+.between { justify-content: space-between; }
+.stack { display: flex; flex-direction: column; }
+
+.sheet-scrim { position: fixed; inset: 0; background: rgba(18,19,24,0.45); z-index: 40; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; max-width: 430px; margin: 0 auto; background: var(--card); border-radius: 32px 32px 0 0; padding: 10px var(--pad) calc(env(safe-area-inset-bottom) + 24px); z-index: 41; max-height: 92dvh; overflow-y: auto; }
+.grabber { width: 40px; height: 5px; border-radius: 3px; background: var(--tick); margin: 0 auto 14px; }
+
+.tabbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 20px); width: min(394px, calc(100% - 36px)); height: 68px; border-radius: 999px; background: var(--ink); display: flex; align-items: center; justify-content: space-between; padding: 0 8px; z-index: 30; }
+.tab { height: 52px; min-width: 52px; border-radius: 999px; border: 0; background: transparent; color: #B8B0A1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; font-weight: 600; }
+.tab[aria-current="page"] { background: var(--cream); color: var(--ink); padding: 0 18px; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

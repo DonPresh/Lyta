@@ -1,0 +1,12 @@
+{
+  "name": "Lyta",
+  "short_name": "Lyta",
+  "description": "A kinder way to get lighter. Three small habits a day.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF6EC",
+  "theme_color": "#FBF6EC",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
