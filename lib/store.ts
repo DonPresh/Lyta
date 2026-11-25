@@ -8,7 +8,9 @@ export type Day = { done?: Record<string, boolean>; water?: number; steps?: numb
 export type Pace = 0.5 | 0.75 | 1;
 export type Profile = { name?: string; startKg: number; goalKg: number; bedStart: string; bedGoal: string; startedOn: string; stepGoal: number; pace: Pace };
 export type Weigh = { date: string; kg: number };
-export type State = { profile: Profile | null; habits: HabitDef[]; days: Record<string, Day>; weights: Weigh[]; points: number };
+export type Milestone = 'streak7' | 'streak30' | 'streak90' | 'kg5';
+export type Reward = { id: string; title: string; cost?: number; milestone?: Milestone; claimedAt?: string };
+export type State = { profile: Profile | null; habits: HabitDef[]; days: Record<string, Day>; weights: Weigh[]; points: number; rewards?: Reward[] };
 
 const KEY = 'lyta-v1';
 export const DEFAULT_HABITS: HabitDef[] = [
@@ -144,6 +146,9 @@ export function useLyta() {
     }),
     deleteWeight: (date: string) => update(s => syncStart({ ...s, weights: s.weights.length > 1 ? s.weights.filter(x => x.date !== date) : s.weights })),
     saveHabit: (h: Omit<HabitDef, 'id'> & { id?: string }) => update(s => h.id ? { ...s, habits: s.habits.map(x => x.id === h.id ? { ...x, ...h, id: x.id } : x) } : { ...s, habits: [...s.habits, { ...h, id: uid() }] }),
+    saveReward: (r: Omit<Reward, 'id'> & { id?: string }) => update(s => { const list = s.rewards ?? []; return { ...s, rewards: r.id ? list.map(x => x.id === r.id ? { ...x, ...r, id: x.id } : x) : [...list, { ...r, id: uid() }] }; }),
+    deleteReward: (id: string) => update(s => ({ ...s, rewards: (s.rewards ?? []).filter(r => r.id !== id) })),
+    claimReward: (id: string) => update(s => ({ ...s, rewards: (s.rewards ?? []).map(r => r.id === id ? { ...r, claimedAt: new Date().toISOString() } : r) })),
     deleteHabit: (id: string) => update(s => ({ ...s, habits: s.habits.length > 1 ? s.habits.filter(h => h.id !== id) : s.habits })),
   };
 }

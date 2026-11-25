@@ -10,21 +10,12 @@ import { RoutinePlayer } from '@/components/Routine';
 import { ROUTINES, routineOf } from '@/lib/routines';
 import { WalkTimer } from '@/components/Walk';
 import { StreakScreen } from '@/components/Streak';
+import { RewardsScreen } from '@/components/Rewards';
 import { Icon, type IconName } from '@/components/icons';
 import { addDays, isDone, streak, useLyta, type HabitDef } from '@/lib/store';
 
 type Tab = 'Today' | 'Streak' | 'Rewards' | 'Weight';
 const TABS: [Tab, IconName][] = [['Today', 'today'], ['Streak', 'streak'], ['Rewards', 'gift'], ['Weight', 'scale']];
-
-function Soon({ title, big, unit, line }: { title: string; big: string; unit: string; line: string }) {
-  return (
-    <div className="screen">
-      <h2 className="h2" style={{ marginTop: 10 }}>{title}</h2>
-      <div className="row" style={{ alignItems: 'flex-end', gap: 10, marginTop: 12 }}><span className="num num-xl cobalt">{big}</span><span className="h3 cobalt" style={{ paddingBottom: 10 }}>{unit}</span></div>
-      <div className="card" style={{ padding: '18px 20px', marginTop: 24 }}><p className="body-l" style={{ margin: 0 }}>{line}</p><p className="small" style={{ margin: '8px 0 0' }}>The full screen is coming in the next build.</p></div>
-    </div>
-  );
-}
 
 export default function Home() {
   const L = useLyta();
@@ -45,7 +36,7 @@ export default function Home() {
       {ready && state.profile && <>
         {tab === 'Today' && <Today key={pickDate ?? 'today'} initialSel={pickDate} profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} setWater={L.setWater} onSugar={setSugarDate} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} onRoutine={setRoutineFor} />}
         {tab === 'Streak' && <StreakScreen state={state} today={today} onPickDay={d => { setPickDate(d === today ? undefined : d); setTab('Today'); }} />}
-        {tab === 'Rewards' && <Soon title="Rewards" big={String(state.points)} unit="points" line="1 per habit, 2 bonus for a full day, 1 for logging sugar honestly." />}
+        {tab === 'Rewards' && <RewardsScreen state={state} today={today} saveReward={L.saveReward} deleteReward={L.deleteReward} claimReward={L.claimReward} />}
         {tab === 'Weight' && <WeightScreen state={state} today={today} saveWeight={L.saveWeight} deleteWeight={L.deleteWeight} updateProfile={L.updateProfile} />}
         <nav className="tabbar" aria-label="Main">
           {TABS.map(([t, ic]) => (
