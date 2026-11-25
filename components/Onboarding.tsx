@@ -32,7 +32,7 @@ export function Onboarding({ onDone }: { onDone: (p: Profile, kg: number) => voi
 
   const finish = async (askNotify: boolean) => {
     if (askNotify && 'Notification' in window) { try { await Notification.requestPermission(); } catch { /* not supported */ } }
-    onDone({ startKg: kg, goalLossKg: loss, bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate() }, kg);
+    onDone({ startKg: kg, goalKg: kg - loss, bedStart: fmtTime(bed), bedGoal: '23:00', startedOn: isoDate(), stepGoal: 6000, pace: 0.75 }, kg);
   };
 
   const shown = unit === 'kg' ? kg : Math.round(kg * 2.2046);

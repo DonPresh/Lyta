@@ -5,8 +5,9 @@ import { Loader } from '@/components/Loader';
 import { Onboarding } from '@/components/Onboarding';
 import { Today } from '@/components/Today';
 import { SugarSheet } from '@/components/SugarSheet';
+import { WeightScreen } from '@/components/Weight';
 import { Icon, type IconName } from '@/components/icons';
-import { addDays, streak, useLyta } from '@/lib/store';
+import { addDays, isDone, streak, useLyta } from '@/lib/store';
 
 type Tab = 'Today' | 'Streak' | 'Rewards' | 'Weight';
 const TABS: [Tab, IconName][] = [['Today', 'today'], ['Streak', 'streak'], ['Rewards', 'gift'], ['Weight', 'scale']];
@@ -22,24 +23,24 @@ function Soon({ title, big, unit, line }: { title: string; big: string; unit: st
 }
 
 export default function Home() {
-  const { state, ready, today, setProfile, toggle, addWater, logSugar } = useLyta();
+  const L = useLyta();
+  const { state, ready, today, setProfile, toggle, addWater, logSugar } = L;
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('Today');
   const [sugarOpen, setSugarOpen] = useState(false);
 
   const s = streak(state, today);
-  const lateNights = Array.from({ length: 7 }, (_, i) => addDays(today, -i - 1)).filter(d => state.days[d] && !state.days[d].bed).length;
-  const lastKg = state.weights[state.weights.length - 1]?.kg;
+  const lateNights = Array.from({ length: 7 }, (_, i) => addDays(today, -i - 1)).filter(d => state.days[d] && !isDone(state.days[d], 'bed')).length;
 
   return (
     <main className="app" style={!state.profile ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' } : undefined}>
       {loading && <Loader onDone={() => setLoading(false)} />}
       {ready && !state.profile && <Onboarding onDone={setProfile} />}
       {ready && state.profile && <>
-        {tab === 'Today' && <Today profile={state.profile} days={state.days} today={today} streak={s} onToggle={toggle} onWater={addWater} onSugar={() => setSugarOpen(true)} />}
+        {tab === 'Today' && <Today profile={state.profile} habits={state.habits} days={state.days} today={today} streak={s} onToggle={toggle} onWater={addWater} onSugar={() => setSugarOpen(true)} setSteps={L.setSteps} saveHabit={L.saveHabit} deleteHabit={L.deleteHabit} />}
         {tab === 'Streak' && <Soon title="Streak" big={String(s)} unit="days showed up" line="Tick one habit and the day counts. You get 2 freezes a month, used automatically." />}
         {tab === 'Rewards' && <Soon title="Rewards" big={String(state.points)} unit="points" line="1 per habit, 2 bonus for a full day, 1 for logging sugar honestly." />}
-        {tab === 'Weight' && <Soon title="Weight" big={String(lastKg ?? '–')} unit="kg" line={`Goal: ${state.profile.startKg - state.profile.goalLossKg} kg. Weigh in once a week, before breakfast.`} />}
+        {tab === 'Weight' && <WeightScreen state={state} today={today} saveWeight={L.saveWeight} deleteWeight={L.deleteWeight} updateProfile={L.updateProfile} />}
         <nav className="tabbar" aria-label="Main">
           {TABS.map(([t, ic]) => (
             <button key={t} className="tab" aria-current={tab === t ? 'page' : undefined} aria-label={t} onClick={() => setTab(t)}>
